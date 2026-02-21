@@ -1,0 +1,539 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  MapPin, Home, Users, Clock, Check, ArrowLeft, Calendar,
+  Wifi, Coffee, Mountain, Sun, Wind, Shield, ChevronLeft, ChevronRight,
+  Phone, Mail, User
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
+import './homestayDetails.css';
+
+export default function HomestayDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [homestay, setHomestay] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showAvailability, setShowAvailability] = useState(false); // ← Added
+  const [bookingData, setBookingData] = useState({
+    checkIn: '',
+    checkOut: '',
+    guests: 1,
+    rooms: 1
+  });
+
+  useEffect(() => {
+    fetchHomestayDetails();
+  }, [id]);
+
+  const fetchHomestayDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/homestay/${id}`, {
+        credentials: 'include'
+      });
+      const result = await response.json();
+      if (result.success) {
+        setHomestay(result.homestay);
+      } else {
+        alert('Homestay not found!');
+        navigate('/homestays');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to load homestay details');
+      navigate('/homestays');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const facilityIcons = {
+    'Free Wi-Fi': <Wifi size={18} />,
+    'Local Food': <Coffee size={18} />,
+    'Nature View': <Mountain size={18} />,
+    'Hot Water': <Sun size={18} />,
+    'Peaceful Environment': <Wind size={18} />,
+    'Cultural Experience': <Shield size={18} />
+  };
+
+  const nextImage = () => {
+    if (homestay?.homestayPhotos?.length > 1) {
+      setCurrentImageIndex((prev) => 
+        prev === homestay.homestayPhotos.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevImage = () => {
+    if (homestay?.homestayPhotos?.length > 1) {
+      setCurrentImageIndex((prev) => 
+        prev === 0 ? homestay.homestayPhotos.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleCheckAvailability = () => {
+    setShowAvailability(true);
+    // Scroll to availability section after a small delay
+    setTimeout(() => {
+      document.getElementById('availability-section')?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
+  };
+
+  const handleBookingChange = (field, value) => {
+    setBookingData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const calculateTotalPrice = () => {
+    if (!bookingData.checkIn || !bookingData.checkOut) return 0;
+    
+    const checkIn = new Date(bookingData.checkIn);
+    const checkOut = new Date(bookingData.checkOut);
+    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+    
+    if (nights <= 0) return 0;
+    
+    return nights * bookingData.rooms * (homestay?.price || 0);
+  };
+
+  const handleBookNow = () => {
+    if (!bookingData.checkIn || !bookingData.checkOut) {
+      alert('Please select check-in and check-out dates!');
+      return;
+    }
+    
+    const nights = Math.ceil((new Date(bookingData.checkOut) - new Date(bookingData.checkIn)) / (1000 * 60 * 60 * 24));
+    
+    if (nights <= 0) {
+      alert('Check-out date must be after check-in date!');
+      return;
+    }
+    
+    if (bookingData.rooms > homestay.rooms) {
+      alert(`Only ${homestay.rooms} rooms available!`);
+      return;
+    }
+    
+    // Navigate to booking confirmation
+    navigate(`/homestay/${id}/confirm`, { 
+      state: { 
+        homestay,
+        bookingData,
+        totalPrice: calculateTotalPrice(),
+        nights 
+      } 
+    });
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="details-loading">Loading...</div>
+      </>
+    );
+  }
+
+  if (!homestay) {
+    return (
+      <>
+        <Navbar />
+        <div className="details-loading">Homestay not found</div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Navbar />
+      <div className="details-page">
+        {/* Back Button */}
+        <div className="details-container">
+          <button className="back-btn" onClick={() => navigate('/homestays')}>
+            <ArrowLeft size={20} />
+            Back to Listings
+          </button>
+
+          {/* Header */}
+          <div className="details-header">
+            <div>
+              <h1 className="details-title">{homestay.homestayName}</h1>
+              <div className="details-location">
+                <MapPin size={18} />
+                <span>{homestay.municipality}, {homestay.district}, {homestay.province}</span>
+              </div>
+            </div>
+            <div className="details-price-badge">
+              <span className="price-large">NPR {homestay.price?.toLocaleString()}</span>
+              <span className="price-small">per night</span>
+            </div>
+          </div>
+
+          {/* Photo Gallery */}
+          <div className="photo-gallery">
+            {homestay.homestayPhotos && homestay.homestayPhotos.length > 0 ? (
+              <>
+                <div className="main-photo">
+                  <img 
+                    src={homestay.homestayPhotos[currentImageIndex].url} 
+                    alt={`${homestay.homestayName} - View ${currentImageIndex + 1}`}
+                  />
+                  {homestay.homestayPhotos.length > 1 && (
+                    <>
+                      <button className="photo-nav prev" onClick={prevImage}>
+                        <ChevronLeft size={24} />
+                      </button>
+                      <button className="photo-nav next" onClick={nextImage}>
+                        <ChevronRight size={24} />
+                      </button>
+                      <div className="photo-counter">
+                        {currentImageIndex + 1} / {homestay.homestayPhotos.length}
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                {/* Thumbnail Strip */}
+                {homestay.homestayPhotos.length > 1 && (
+                  <div className="photo-thumbnails">
+                    {homestay.homestayPhotos.map((photo, index) => (
+                      <div
+                        key={index}
+                        className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      >
+                        <img src={photo.url} alt={`Thumbnail ${index + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="no-photos">
+                <Home size={64} />
+                <p>No photos available</p>
+              </div>
+            )}
+          </div>
+
+          <div className="details-content">
+            {/* Main Content */}
+            <div className="main-content">
+              {/* Quick Info */}
+              <div className="quick-info">
+                <div className="info-item">
+                  <Home size={20} />
+                  <div>
+                    <span className="info-label">Rooms</span>
+                    <span className="info-value">{homestay.rooms} Available</span>
+                  </div>
+                </div>
+                <div className="info-item">
+                  <Users size={20} />
+                  <div>
+                    <span className="info-label">Capacity</span>
+                    <span className="info-value">{homestay.guests || 2} Guests per room</span>
+                  </div>
+                </div>
+                <div className="info-item">
+                  <Clock size={20} />
+                  <div>
+                    <span className="info-label">Check-in</span>
+                    <span className="info-value">{homestay.checkIn || '2:00 PM'}</span>
+                  </div>
+                </div>
+                <div className="info-item">
+                  <Clock size={20} />
+                  <div>
+                    <span className="info-label">Check-out</span>
+                    <span className="info-value">{homestay.checkOut || '11:00 AM'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* About Section */}
+              <section className="details-section">
+                <h2>About This Homestay</h2>
+                <p className="about-text">
+                  {homestay.description || 'Experience authentic Nepali hospitality in this beautiful homestay.'}
+                </p>
+              </section>
+
+              {/* Special Features Section */}
+              {homestay.specialFeatures && homestay.specialFeatures.length > 0 && (
+                <section className="details-section special-features-section">
+                  <h2>✨ What Makes This Stay Special</h2>
+                  <div className="special-features-list">
+                    {homestay.specialFeatures.map((feature, index) => (
+                      <div key={index} className="special-feature-item">
+                        <span className="feature-icon">⭐</span>
+                        <span className="feature-text">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Amenities */}
+              <section className="details-section">
+                <h2>Amenities & Facilities</h2>
+                <div className="amenities-grid">
+                  {homestay.facilities && homestay.facilities.length > 0 ? (
+                    homestay.facilities.map((facility, index) => (
+                      <div key={index} className="amenity-item">
+                        <div className="amenity-icon">
+                          {facilityIcons[facility] || <Check size={18} />}
+                        </div>
+                        <span>{facility}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="no-data">No facilities listed</p>
+                  )}
+                </div>
+              </section>
+
+              {/* Location Details */}
+              <section className="details-section">
+                <h2>Location</h2>
+                <div className="location-details">
+                  <div className="location-item">
+                    <span className="location-label">Province:</span>
+                    <span className="location-value">{homestay.province}</span>
+                  </div>
+                  <div className="location-item">
+                    <span className="location-label">District:</span>
+                    <span className="location-value">{homestay.district}</span>
+                  </div>
+                  <div className="location-item">
+                    <span className="location-label">Municipality:</span>
+                    <span className="location-value">{homestay.municipality}</span>
+                  </div>
+                  {homestay.ward && (
+                    <div className="location-item">
+                      <span className="location-label">Ward:</span>
+                      <span className="location-value">{homestay.ward}</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* House Rules Section */}
+              <section className="details-section house-rules-section">
+                <h2>📋 House Rules</h2>
+                <div className="house-rules-grid">
+                  <div className="rule-item">
+                    <span className={`rule-icon ${homestay.smokingAllowed ? 'allowed' : 'not-allowed'}`}>
+                      {homestay.smokingAllowed ? '✓' : '✗'}
+                    </span>
+                    <div>
+                      <span className="rule-label">Smoking</span>
+                      <span className="rule-status">{homestay.smokingAllowed ? 'Allowed' : 'Not Allowed'}</span>
+                    </div>
+                  </div>
+                  <div className="rule-item">
+                    <span className={`rule-icon ${homestay.petsAllowed ? 'allowed' : 'not-allowed'}`}>
+                      {homestay.petsAllowed ? '✓' : '✗'}
+                    </span>
+                    <div>
+                      <span className="rule-label">Pets</span>
+                      <span className="rule-status">{homestay.petsAllowed ? 'Allowed' : 'Not Allowed'}</span>
+                    </div>
+                  </div>
+                  <div className="rule-item">
+                    <span className={`rule-icon ${homestay.childrenAllowed ? 'allowed' : 'not-allowed'}`}>
+                      {homestay.childrenAllowed ? '✓' : '✗'}
+                    </span>
+                    <div>
+                      <span className="rule-label">Children</span>
+                      <span className="rule-status">{homestay.childrenAllowed ? 'Friendly' : 'Adults Only'}</span>
+                    </div>
+                  </div>
+                </div>
+                {homestay.additionalRules && (
+                  <div className="additional-rules">
+                    <h4>Additional Rules:</h4>
+                    <p>{homestay.additionalRules}</p>
+                  </div>
+                )}
+              </section>
+
+              {/* Cancellation Policy Section */}
+              <section className="details-section cancellation-section">
+                <h2>🔄 Cancellation Policy</h2>
+                <div className="policy-card">
+                  {homestay.cancellationPolicy === 'flexible' && (
+                    <>
+                      <div className="policy-badge flexible">Flexible</div>
+                      <p className="policy-text">
+                        ✓ Free cancellation up to 7 days before check-in<br/>
+                        ✓ Full refund if cancelled more than 7 days in advance<br/>
+                        ✓ 50% refund if cancelled 3-7 days before check-in<br/>
+                        ✗ No refund within 3 days of check-in
+                      </p>
+                    </>
+                  )}
+                  {homestay.cancellationPolicy === 'moderate' && (
+                    <>
+                      <div className="policy-badge moderate">Moderate</div>
+                      <p className="policy-text">
+                        ✓ Free cancellation up to 14 days before check-in<br/>
+                        ✓ 50% refund if cancelled 7-14 days before check-in<br/>
+                        ✗ No refund within 7 days of check-in
+                      </p>
+                    </>
+                  )}
+                  {homestay.cancellationPolicy === 'strict' && (
+                    <>
+                      <div className="policy-badge strict">Strict</div>
+                      <p className="policy-text">
+                        ✗ No refunds within 30 days of check-in<br/>
+                        ✓ 50% refund if cancelled more than 30 days in advance<br/>
+                        ⚠ Please plan your trip carefully
+                      </p>
+                    </>
+                  )}
+                </div>
+              </section>
+
+              {/* Host Information */}
+              <section className="details-section">
+                <h2>Host Information</h2>
+                <div className="host-info">
+                  <div className="host-avatar">
+                    {homestay.ownerPhoto?.url ? (
+                      <img src={homestay.ownerPhoto.url} alt={homestay.ownerName} className="host-photo" />
+                    ) : (
+                      <User size={32} />
+                    )}
+                  </div>
+                  <div className="host-details">
+                    <h3>Hosted by {homestay.ownerName}</h3>
+                    <div className="host-contact">
+                      <div className="contact-item">
+                        <Mail size={14} />
+                        <span>{homestay.email}</span>
+                      </div>
+                      <div className="contact-item">
+                        <Phone size={14} />
+                        <span>{homestay.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Availability Section - Shows after clicking Check Availability */}
+              {showAvailability && (
+                <section className="details-section availability-section" id="availability-section">
+                  <h2>Check Availability & Book</h2>
+                  
+                  <div className="booking-form">
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label>Check-in Date</label>
+                        <input
+                          type="date"
+                          value={bookingData.checkIn}
+                          onChange={(e) => handleBookingChange('checkIn', e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label>Check-out Date</label>
+                        <input
+                          type="date"
+                          value={bookingData.checkOut}
+                          onChange={(e) => handleBookingChange('checkOut', e.target.value)}
+                          min={bookingData.checkIn || new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label>Number of Rooms</label>
+                        <select
+                          value={bookingData.rooms}
+                          onChange={(e) => handleBookingChange('rooms', parseInt(e.target.value))}
+                        >
+                          {[...Array(homestay.rooms)].map((_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1} {i === 0 ? 'Room' : 'Rooms'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-field">
+                        <label>Number of Guests</label>
+                        <select
+                          value={bookingData.guests}
+                          onChange={(e) => handleBookingChange('guests', parseInt(e.target.value))}
+                        >
+                          {[...Array(10)].map((_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1} {i === 0 ? 'Guest' : 'Guests'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Price Breakdown */}
+                    {bookingData.checkIn && bookingData.checkOut && (
+                      <div className="price-breakdown">
+                        <div className="breakdown-row">
+                          <span>NPR {homestay.price?.toLocaleString()} × {bookingData.rooms} room(s) × {Math.ceil((new Date(bookingData.checkOut) - new Date(bookingData.checkIn)) / (1000 * 60 * 60 * 24))} night(s)</span>
+                          <span>NPR {calculateTotalPrice().toLocaleString()}</span>
+                        </div>
+                        <div className="breakdown-row total">
+                          <span>Total</span>
+                          <span>NPR {calculateTotalPrice().toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <button className="book-now-btn" onClick={handleBookNow}>
+                      Book Now
+                    </button>
+                  </div>
+                </section>
+              )}
+            </div>
+
+            {/* Booking Sidebar */}
+            <div className="booking-sidebar">
+              <div className="booking-card">
+                <div className="booking-price">
+                  <span className="price">NPR {homestay.price?.toLocaleString()}</span>
+                  <span className="price-unit">per night</span>
+                </div>
+
+                <div className="booking-info">
+                  <div className="booking-item">
+                    <Home size={16} />
+                    <span>{homestay.rooms} rooms available</span>
+                  </div>
+                  <div className="booking-item">
+                    <Users size={16} />
+                    <span>Up to {homestay.guests || 2} guests per room</span>
+                  </div>
+                </div>
+
+                <button className="availability-btn" onClick={handleCheckAvailability}>
+                  <Calendar size={18} />
+                  Check Availability
+                </button>
+
+                <p className="booking-note">You won't be charged yet</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
