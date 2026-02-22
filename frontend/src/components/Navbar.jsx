@@ -80,7 +80,6 @@ export default function Navbar() {
           <span onClick={() => navigate("/")}>Home</span>
           <span onClick={() => navigate("/homestayListings")}>HomestayListings</span>
           <span onClick={() => navigate("/about")}>About Us</span>
-          <span onClick={() => navigate("/blog")}>Blog</span>
           <span onClick={() => navigate("/contact")}>Contact</span>
         </div>
 
@@ -94,8 +93,8 @@ export default function Navbar() {
             </button>
           ) : userRole === 'host' ? (
             // Host sees their dashboard button
-            <button className="btn-dashboard" onClick={() => navigate("/host/dashboard")}>
-              🏠 My Dashboard
+            <button className="btn-dashboard" onClick={() => navigate("/Hosts/hostDashboard")}>
+               My Dashboard
             </button>
           ) : (
             // Tourist/Not logged in see Add Your Stay

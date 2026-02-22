@@ -8,7 +8,9 @@ import {
   getPendingHomestays,
   approveHomestay,
   rejectHomestay,
-  getApprovedHomestays
+  getApprovedHomestays,
+  getMyHomestay, 
+  updateHomestay
 } from '../Controller/homestayController.js';
 
 const router = express.Router();
@@ -38,5 +40,12 @@ router.put('/reject/:id', rejectHomestay);
 
 // GET: Get homestay by ID (admin)
 router.get('/:id', getHomestayById);
+
+// GET: Get host's own homestay
+router.get('/my-homestay/:userId', getMyHomestay);
+
+// PUT: Update homestay (host edit)
+router.put('/update/:id', updateHomestay);
+
 
 export default router;

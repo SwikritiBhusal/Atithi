@@ -27,7 +27,7 @@ export default function LoginPage() {
       } else if (user.role === 'host') {
         // Check if has approved homestay
         if (user.hasApprovedHomestay) {
-          navigate('/host/dashboard');
+          navigate('/Hosts/hostDashboard');
         } else {
           navigate('/');
         }
@@ -67,7 +67,7 @@ export default function LoginPage() {
         window.dispatchEvent(new Event('storage'));
 
         const role = result.user.role;
-        const from = location.state?.from; // ← ADDED: Check where user came from
+        const from = location.state?.from; 
 
         // ============ UPDATED REDIRECT LOGIC ============
         // If coming from homestay form, redirect back to form

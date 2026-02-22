@@ -272,3 +272,89 @@ Atithi Team
     return res.json({ success: false, message: error.message });
   }
 };
+// Get host's own homestay
+export const getMyHomestay = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const homestay = await Homestay.findOne({ 
+      hostUserId: userId,
+      status: 'approved' // Only show if approved
+    });
+    
+    if (!homestay) {
+      return res.json({ 
+        success: false, 
+        message: 'No approved homestay found' 
+      });
+    }
+    
+    return res.json({ 
+      success: true, 
+      homestay 
+    });
+  } catch (error) {
+    return res.json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+
+// Update homestay (host can edit their own)
+export const updateHomestay = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Fields that hosts can update
+    const allowedFields = [
+      'homestayName',
+      'description',
+      'rooms',
+      'guests',
+      'price',
+      'checkIn',
+      'checkOut',
+      'facilities',
+      'specialFeatures',
+      'smokingAllowed',
+      'petsAllowed',
+      'childrenAllowed',
+      'additionalRules',
+      'cancellationPolicy'
+    ];
+    
+    // Filter only allowed fields
+    const filteredData = {};
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        filteredData[field] = updateData[field];
+      }
+    });
+    
+    const homestay = await Homestay.findByIdAndUpdate(
+      id,
+      filteredData,
+      { new: true, runValidators: true }
+    );
+    
+    if (!homestay) {
+      return res.json({ 
+        success: false, 
+        message: 'Homestay not found' 
+      });
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: 'Homestay updated successfully',
+      homestay 
+    });
+  } catch (error) {
+    return res.json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};

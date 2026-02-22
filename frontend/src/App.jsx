@@ -15,7 +15,7 @@ import Overview from './Features/Admin/overview';
 import Homestays from './Features/Admin/homestays';
 import HomestayListings from './Features/homestayListings';
 import HomestayDetails from './Features/homestayDetails';
-
+import HostDashboard from './Features/Hosts/hostDashboard';
 
 // Protected Routes
 import { AdminProtectedRoute, HostProtectedRoute } from './components/ProtectedRoute';
@@ -61,14 +61,14 @@ function App() {
 
 
         {/* Host Protected Routes */}
-        {/* <Route 
-          path="/host/dashboard" 
+        <Route 
+          path="/Hosts/hostDashboard" 
           element={
             <HostProtectedRoute>
               <HostDashboard />
             </HostProtectedRoute>
           } 
-        /> */}
+        />
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<HomePage />} />

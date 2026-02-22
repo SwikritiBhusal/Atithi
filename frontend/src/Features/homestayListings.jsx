@@ -103,7 +103,7 @@ export default function HomestayListings() {
         {/* Hero Section */}
         <div className="listings-hero">
           <div className="hero-content">
-            <h1 className="hero-title">Discover Authentic Homestays</h1>
+            <h1 className="hero-title">Discover Authentic Local Homestays</h1>
             <p className="hero-subtitle">Experience the warmth of Nepali hospitality in the heart of the Himalayas</p>
           </div>
           <div className="hero-pattern"></div>

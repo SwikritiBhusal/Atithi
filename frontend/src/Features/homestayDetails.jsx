@@ -74,7 +74,8 @@ export default function HomestayDetails() {
 
   const handleCheckAvailability = () => {
     setShowAvailability(true);
-    // Scroll to availability section after a small delay
+    
+    // Scrolling to availability section
     setTimeout(() => {
       document.getElementById('availability-section')?.scrollIntoView({ 
         behavior: 'smooth',
@@ -152,7 +153,7 @@ export default function HomestayDetails() {
       <div className="details-page">
         {/* Back Button */}
         <div className="details-container">
-          <button className="back-btn" onClick={() => navigate('/homestays')}>
+          <button className="back-btn" onClick={() => navigate('/homestayListings')}>
             <ArrowLeft size={20} />
             Back to Listings
           </button>
@@ -321,83 +322,89 @@ export default function HomestayDetails() {
                 </div>
               </section>
 
-              {/* House Rules Section */}
-              <section className="details-section house-rules-section">
-                <h2>📋 House Rules</h2>
-                <div className="house-rules-grid">
-                  <div className="rule-item">
-                    <span className={`rule-icon ${homestay.smokingAllowed ? 'allowed' : 'not-allowed'}`}>
-                      {homestay.smokingAllowed ? '✓' : '✗'}
-                    </span>
-                    <div>
-                      <span className="rule-label">Smoking</span>
-                      <span className="rule-status">{homestay.smokingAllowed ? 'Allowed' : 'Not Allowed'}</span>
-                    </div>
-                  </div>
-                  <div className="rule-item">
-                    <span className={`rule-icon ${homestay.petsAllowed ? 'allowed' : 'not-allowed'}`}>
-                      {homestay.petsAllowed ? '✓' : '✗'}
-                    </span>
-                    <div>
-                      <span className="rule-label">Pets</span>
-                      <span className="rule-status">{homestay.petsAllowed ? 'Allowed' : 'Not Allowed'}</span>
-                    </div>
-                  </div>
-                  <div className="rule-item">
-                    <span className={`rule-icon ${homestay.childrenAllowed ? 'allowed' : 'not-allowed'}`}>
-                      {homestay.childrenAllowed ? '✓' : '✗'}
-                    </span>
-                    <div>
-                      <span className="rule-label">Children</span>
-                      <span className="rule-status">{homestay.childrenAllowed ? 'Friendly' : 'Adults Only'}</span>
-                    </div>
-                  </div>
-                </div>
-                {homestay.additionalRules && (
-                  <div className="additional-rules">
-                    <h4>Additional Rules:</h4>
-                    <p>{homestay.additionalRules}</p>
-                  </div>
-                )}
-              </section>
+             
+{/* House Rules Section - IMPROVED VERSION */}
+<section className="details-section house-rules-section">
+  <h2>📋 House Rules</h2>
+  <div className="house-rules-grid">
+    <div className="rule-item">
+      <span className={`rule-icon ${homestay.smokingAllowed ? 'allowed' : 'not-allowed'}`}>
+        {homestay.smokingAllowed ? '✓' : '✗'}
+      </span>
+      <div>
+        <span className="rule-label">Smoking</span>
+        <span className="rule-status">{homestay.smokingAllowed ? 'Allowed' : 'Not Allowed'}</span>
+      </div>
+    </div>
+    <div className="rule-item">
+      <span className={`rule-icon ${homestay.petsAllowed ? 'allowed' : 'not-allowed'}`}>
+        {homestay.petsAllowed ? '✓' : '✗'}
+      </span>
+      <div>
+        <span className="rule-label">Pets</span>
+        <span className="rule-status">{homestay.petsAllowed ? 'Allowed' : 'Not Allowed'}</span>
+      </div>
+    </div>
+    <div className="rule-item">
+      <span className={`rule-icon ${homestay.childrenAllowed ? 'allowed' : 'not-allowed'}`}>
+        {homestay.childrenAllowed ? '✓' : '✗'}
+      </span>
+      <div>
+        <span className="rule-label">Children</span>
+        <span className="rule-status">{homestay.childrenAllowed ? 'Friendly' : 'Adults Only'}</span>
+      </div>
+    </div>
+  </div>
+  {homestay.additionalRules && (
+    <div className="additional-rules">
+      <h4>Additional Rules</h4>
+      <ul>
+        {homestay.additionalRules.split('\n').filter(rule => rule.trim()).map((rule, index) => (
+          <li key={index}>{rule.trim()}</li>
+        ))}
+      </ul>
+    </div>
+  )}
+</section>
 
-              {/* Cancellation Policy Section */}
-              <section className="details-section cancellation-section">
-                <h2>🔄 Cancellation Policy</h2>
-                <div className="policy-card">
-                  {homestay.cancellationPolicy === 'flexible' && (
-                    <>
-                      <div className="policy-badge flexible">Flexible</div>
-                      <p className="policy-text">
-                        ✓ Free cancellation up to 7 days before check-in<br/>
-                        ✓ Full refund if cancelled more than 7 days in advance<br/>
-                        ✓ 50% refund if cancelled 3-7 days before check-in<br/>
-                        ✗ No refund within 3 days of check-in
-                      </p>
-                    </>
-                  )}
-                  {homestay.cancellationPolicy === 'moderate' && (
-                    <>
-                      <div className="policy-badge moderate">Moderate</div>
-                      <p className="policy-text">
-                        ✓ Free cancellation up to 14 days before check-in<br/>
-                        ✓ 50% refund if cancelled 7-14 days before check-in<br/>
-                        ✗ No refund within 7 days of check-in
-                      </p>
-                    </>
-                  )}
-                  {homestay.cancellationPolicy === 'strict' && (
-                    <>
-                      <div className="policy-badge strict">Strict</div>
-                      <p className="policy-text">
-                        ✗ No refunds within 30 days of check-in<br/>
-                        ✓ 50% refund if cancelled more than 30 days in advance<br/>
-                        ⚠ Please plan your trip carefully
-                      </p>
-                    </>
-                  )}
-                </div>
-              </section>
+             
+{/* Cancellation Policy Section - IMPROVED VERSION */}
+<section className="details-section cancellation-section">
+  <h2>🔄 Cancellation Policy</h2>
+  <div className="policy-card">
+    {homestay.cancellationPolicy === 'flexible' && (
+      <>
+        <div className="policy-badge flexible">Flexible</div>
+        <p className="policy-text">
+          ✓ Free cancellation up to 7 days before check-in<br/>
+          ✓ Full refund if cancelled more than 7 days in advance<br/>
+          ✓ 50% refund if cancelled 3-7 days before check-in<br/>
+          ✗ No refund within 3 days of check-in
+        </p>
+      </>
+    )}
+    {homestay.cancellationPolicy === 'moderate' && (
+      <>
+        <div className="policy-badge moderate">Moderate</div>
+        <p className="policy-text">
+          ✓ Free cancellation up to 14 days before check-in<br/>
+          ✓ 50% refund if cancelled 7-14 days before check-in<br/>
+          ✗ No refund within 7 days of check-in
+        </p>
+      </>
+    )}
+    {homestay.cancellationPolicy === 'strict' && (
+      <>
+        <div className="policy-badge strict">Strict</div>
+        <p className="policy-text">
+          ✗ No refunds within 30 days of check-in<br/>
+          ✓ 50% refund if cancelled more than 30 days in advance<br/>
+          ⚠ Please plan your trip carefully
+        </p>
+      </>
+    )}
+  </div>
+</section>
 
               {/* Host Information */}
               <section className="details-section">
