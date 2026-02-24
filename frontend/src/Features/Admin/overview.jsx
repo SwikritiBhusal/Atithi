@@ -8,12 +8,20 @@ import {
   Building2, 
   LogOut,
   TrendingUp,
-  AlertCircle
+  Menu,
+  X,
+  User,
+  Settings
 } from 'lucide-react';
+import AdminProfile from './AdminProfile';
+import AdminHomestays from './homestays';
+import AdminUsers from './UsersManagement';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [user, setUser] = useState(null);
   
   // Mock data - replace with real API calls
   const [stats, setStats] = useState({
@@ -43,6 +51,23 @@ export default function AdminDashboard() {
     { day: 30, bookings: 14 }
   ]);
 
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      navigate('/login');
+      return;
+    }
+    
+    const userData = JSON.parse(userStr);
+    if (userData.role !== 'admin') {
+      alert('Access denied! Admins only.');
+      navigate('/');
+      return;
+    }
+    
+    setUser(userData);
+  }, [navigate]);
+
   const handleLogout = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/auth/logout", {
@@ -58,11 +83,7 @@ export default function AdminDashboard() {
         // Trigger storage event for Navbar to update
         window.dispatchEvent(new Event('storage'));
         
-        alert("Logged out successfully!");
-        navigate("/");
-        
-        // Force page reload to ensure Navbar re-renders
-        window.location.reload();
+        navigate("/login");
       }
     } catch (error) {
       console.error(error);
@@ -73,8 +94,7 @@ export default function AdminDashboard() {
       // Trigger storage event
       window.dispatchEvent(new Event('storage'));
       
-      navigate("/");
-      window.location.reload();
+      navigate("/login");
     }
   };
 
@@ -256,76 +276,101 @@ export default function AdminDashboard() {
     </div>
   );
 
-  // const renderHomestays = () => (
-  //   <div className="admin-content-section">
-  //     <h2>Homestays Management</h2>
-  //     <p>Homestay management content here...</p>
-  //   </div>
-  // );
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return renderOverview();
+      case 'homestays':
+        return <AdminHomestays />;
+      case 'users':
+        return <AdminUsers />;
+      case 'profile':
+        return <AdminProfile />;
+      default:
+        return renderOverview();
+    }
+  };
 
-  // const renderUsers = () => (
-  //   <div className="admin-content-section">
-  //     <h2>Users Management</h2>
-  //     <p>Users management content here...</p>
-  //   </div>
-  // );
+  if (!user) {
+    return <div className="ad-loading">Loading...</div>;
+  }
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard-new">
       {/* Sidebar */}
-      <aside className="admin-sidebar">
-        <div className="sidebar-header">
-           <h2>Admin Panel</h2>
-          <div className="logo-wrapperr">
-            <div className="logo-boxx" onClick={() => navigate("/")}>
-              <img src={Logo} alt="Namaste Logo" className="logo-imagee" />
-            </div>
+      <aside className={`ad-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="ad-sidebar-header">
+          <div className="ad-logo">
+            <Settings size={28} className="ad-logo-icon" />
+            {sidebarOpen && <span className="ad-logo-text">Admin Panel</span>}
+          </div>
+          <button className="ad-toggle-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+
+        <div className="logo-wrapperr">
+          <div className="logo-boxx" onClick={() => navigate("/")}>
+            <img src={Logo} alt="Atithi Logo" className="logo-imagee" />
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <div className="ad-user-info">
+          <div className="ad-user-avatar">
+            <User size={24} />
+          </div>
+          {sidebarOpen && (
+            <div className="ad-user-details">
+              <span className="ad-user-name">{user.username}</span>
+              <span className="ad-user-role">Administrator</span>
+            </div>
+          )}
+        </div>
+
+        <nav className="ad-nav">
           <button
-            className="nav-item active"
-            onClick={() => navigate('/Admin/overview')}
+            className={`ad-nav-item ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
           >
             <Home size={20} />
-            <span>Overview</span>
+            {sidebarOpen && <span>Overview</span>}
           </button>
 
           <button
-            className="nav-item"
-            onClick={() => navigate('/Admin/homestays')}
+            className={`ad-nav-item ${activeTab === 'homestays' ? 'active' : ''}`}
+            onClick={() => setActiveTab('homestays')}
           >
             <Building2 size={20} />
-            <span>Homestays</span>
+            {sidebarOpen && <span>Homestays</span>}
           </button>
 
           <button
-            className="nav-item"
-            onClick={() => navigate('/Admin/users')}
+            className={`ad-nav-item ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => setActiveTab('users')}
           >
             <Users size={20} />
-            <span>Users</span>
+            {sidebarOpen && <span>Users</span>}
           </button>
 
-          <button className="nav-item logout-btn" onClick={handleLogout}>
-            <LogOut size={20} />
-            <span>Logout</span>
+          <button
+            className={`ad-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <User size={20} />
+            {sidebarOpen && <span>Profile</span>}
           </button>
         </nav>
+
+        <button className="ad-logout-btn" onClick={handleLogout}>
+          <LogOut size={20} />
+          {sidebarOpen && <span>Logout</span>}
+        </button>
       </aside>
 
       {/* Main Content */}
-      <main className="admin-main">
-          <div className="admin-header">
-          <h1>Dashboard Overview</h1>
-          <div className="admin-user-info">
-            <span>Admin</span>
-          </div>
-        </div>
-
-        <div className="admin-content">
-          {renderOverview()}
+      <main className={`ad-main ${sidebarOpen ? '' : 'expanded'}`}>
+        <div className="ad-content">
+          {renderContent()}
         </div>
       </main>
     </div>

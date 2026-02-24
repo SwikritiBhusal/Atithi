@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { User, Settings, LogOut, ChevronDown } from "lucide-react";
 import "./Navbar.css";
 import Logo from '../assets/images/atithi-high-resolution-logo.png';
 
@@ -8,9 +9,13 @@ export default function Navbar() {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [userName, setUserName] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
-  // Check if we're on admin pages
+  // Check if we're on admin/host dashboard pages
   const isAdminPage = location.pathname.startsWith('/admin');
+  const isHostPage = location.pathname.startsWith('/host');
 
   useEffect(() => {
     const checkLoginStatus = () => {
@@ -19,20 +24,31 @@ export default function Navbar() {
         const user = JSON.parse(userStr);
         setIsLoggedIn(true);
         setUserRole(user.role);
+        setUserName(user.username || 'User');
       } else {
         setIsLoggedIn(false);
         setUserRole(null);
+        setUserName('');
       }
     };
 
-    // Check on mount and when location changes
     checkLoginStatus();
-
-    // Listen for storage changes
     window.addEventListener('storage', checkLoginStatus);
     
     return () => window.removeEventListener('storage', checkLoginStatus);
-  }, [location]); // ← Add location as dependency!
+  }, [location]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -47,7 +63,7 @@ export default function Navbar() {
         localStorage.removeItem('user');
         setIsLoggedIn(false);
         setUserRole(null);
-        alert("Logged out successfully!");
+        setShowDropdown(false);
         navigate("/");
       }
     } catch (error) {
@@ -60,8 +76,27 @@ export default function Navbar() {
     }
   };
 
-  // Don't show navbar on admin dashboard pages
-  if (isAdminPage) {
+  const handleProfileClick = () => {
+    setShowDropdown(false);
+    if (userRole === 'admin') {
+      navigate('/Admin/overview'); // Profile tab in sidebar
+    } else if (userRole === 'host') {
+      navigate('/Hosts/hostDashboard'); // Profile tab in sidebar
+    } else {
+      navigate('/MyProfile'); // Dedicated profile page for tourists
+    }
+  };
+
+  const handleDashboardClick = () => {
+    if (userRole === 'admin') {
+      navigate('/Admin/overview');
+    } else if (userRole === 'host') {
+      navigate('/Hosts/hostDashboard');
+    }
+  };
+
+  // Don't show navbar on admin/host dashboard pages
+  if (isAdminPage || isHostPage) {
     return null;
   }
 
@@ -75,29 +110,30 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Center: Navigation Links - SHOW FOR EVERYONE */}
+        {/* Center: Navigation Links */}
         <div className="nav-links">
           <span onClick={() => navigate("/")}>Home</span>
-          <span onClick={() => navigate("/homestayListings")}>HomestayListings</span>
+          <span onClick={() => navigate("/homestayListings")}>Homestays</span>
           <span onClick={() => navigate("/about")}>About Us</span>
           <span onClick={() => navigate("/contact")}>Contact</span>
         </div>
 
-        {/* Right: Buttons based on role */}
+        {/* Right: Buttons and Profile */}
         <div className="nav-right">
-          {/* Show different buttons based on role and login status */}
-          {userRole === 'admin' ? (
-            // Admin sees Dashboard button
-            <button className="btn-dashboard" onClick={() => navigate("/admin/overview")}>
+          {/* Dashboard button for admin/host */}
+          {userRole === 'admin' && (
+            <button className="btn-dashboard" onClick={handleDashboardClick}>
               📊 Dashboard
             </button>
-          ) : userRole === 'host' ? (
-            // Host sees their dashboard button
-            <button className="btn-dashboard" onClick={() => navigate("/Hosts/hostDashboard")}>
+          )}
+          {userRole === 'host' && (
+            <button className="btn-dashboard" onClick={handleDashboardClick}>
                My Dashboard
             </button>
-          ) : (
-            // Tourist/Not logged in see Add Your Stay
+          )}
+
+          {/* Add Your Stay button for tourists/not logged in */}
+          {(!isLoggedIn || userRole === 'tourist') && (
             <button className="btn-add-stay" onClick={() => navigate("/HomestayForm")}>
               + Add Your Stay
             </button>
@@ -105,9 +141,53 @@ export default function Navbar() {
 
           <div className="nav-buttons">
             {isLoggedIn ? (
-              <button className="btn-logout" onClick={handleLogout}>
-                Logout
-              </button>
+              <div className="profile-dropdown-container" ref={dropdownRef}>
+                <button 
+                  className="profile-avatar-btn"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                >
+                  <div className="avatar-circle">
+                    <User size={18} />
+                  </div>
+                  <span className="avatar-name">{userName}</span>
+                  <ChevronDown size={16} className={`dropdown-arrow ${showDropdown ? 'open' : ''}`} />
+                </button>
+
+                {showDropdown && (
+                  <div className="profile-dropdown">
+                    <div className="dropdown-header">
+                      <div className="dropdown-avatar">
+                        <User size={24} />
+                      </div>
+                      <div className="dropdown-info">
+                        <span className="dropdown-name">{userName}</span>
+                        <span className="dropdown-role">{userRole}</span>
+                      </div>
+                    </div>
+
+                    <div className="dropdown-divider"></div>
+
+                    <button className="dropdown-item" onClick={handleProfileClick}>
+                      <Settings size={16} />
+                      <span>My Profile</span>
+                    </button>
+
+                    {(userRole === 'admin' || userRole === 'host') && (
+                      <button className="dropdown-item" onClick={handleDashboardClick}>
+                        <User size={16} />
+                        <span>Dashboard</span>
+                      </button>
+                    )}
+
+                    <div className="dropdown-divider"></div>
+
+                    <button className="dropdown-item logout" onClick={handleLogout}>
+                      <LogOut size={16} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <button className="btn-login" onClick={() => navigate("/login")}>

@@ -11,11 +11,14 @@ import EmailVerify from './Features/auth/EmailVerify';
 import ResetPassword from './Features/auth/ResetPassword';
 import ForgotPassword from './Features/auth/ForgotPassword';
 import HomestayForm from './Features/HomestayForm';
-import Overview from './Features/Admin/overview';
-import Homestays from './Features/Admin/homestays';
+import AdminDashboard from './Features/Admin/overview';
+// import Homestays from './Features/Admin/homestays';
 import HomestayListings from './Features/homestayListings';
 import HomestayDetails from './Features/homestayDetails';
 import HostDashboard from './Features/Hosts/hostDashboard';
+import MyProfile from './Features/MyProfile';
+import AdminProfile from './Features/Admin/AdminProfile';
+
 
 // Protected Routes
 import { AdminProtectedRoute, HostProtectedRoute } from './components/ProtectedRoute';
@@ -34,9 +37,12 @@ function App() {
       <Route path="/verify-email" element={<EmailVerify />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/HomestayForm" element={<HomestayForm />} /> 
-      <Route path="/overview" element={<Overview />} /> 
-      <Route path="/homestays" element={<Homestays />} /> 
+      <Route path="/HomestayForm" element={<HomestayForm />} />
+       <Route path="/MyProfile" element={<MyProfile />} />
+       <Route path="/AdminProfile" element={<AdminProfile />} />
+
+      {/* <Route path="/overview" element={<AdminDashboard />} /> 
+      <Route path="/homestays" element={<Homestays />} />  */}
       <Route path="/homestayListings" element={<HomestayListings />} /> 
       <Route path="/homestay/:id" element={<HomestayDetails />} />
 
@@ -46,7 +52,7 @@ function App() {
           path="/admin/overview" 
           element={
             <AdminProtectedRoute>
-              <Overview />
+              <AdminDashboard />
             </AdminProtectedRoute>
           } 
         />
@@ -54,7 +60,7 @@ function App() {
           path="/admin/homestays" 
           element={
             <AdminProtectedRoute>
-              <Homestays />
+              <AdminDashboard />
             </AdminProtectedRoute>
           } 
         />

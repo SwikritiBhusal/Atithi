@@ -5,7 +5,7 @@ import './hostDashboard.css';
 import MyHomestay from './MyHomestay';
 import Logo from "../../assets/images/atithi-high-resolution-logo.png";
 // import HostBookings from './HostBookings';
-// import HostProfile from './MyProfile';
+import HostProfile from './HostProfile';
 
 export default function HostDashboard() {
   const navigate = useNavigate();
@@ -57,12 +57,12 @@ export default function HostDashboard() {
     switch (activeTab) {
       case 'homestay':
         return <MyHomestay />;
-      case 'bookings':
-        // return <HostBookings />;
+      // case 'bookings':
+      //   return <HostBookings />;
       case 'profile':
-        // return <MyProfile />;
+        return <HostProfile />;
       default:
-        // return <MyHomestay />;
+        return <MyHomestay />;
     }
   };
 

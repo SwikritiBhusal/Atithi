@@ -287,3 +287,108 @@ export const isAuthenticated = async (req, res) => {
 
   
 };
+
+// Update user profile
+export const updateProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { username, email, contactNumber } = req.body;
+
+    // Find user
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.json({ success: false, message: 'User not found' });
+    }
+
+    // Check if email already exists (if changing)
+    if (email !== user.email) {
+      const existingUser = await userModel.findOne({ email });
+      if (existingUser) {
+        return res.json({ success: false, message: 'Email already in use' });
+      }
+    }
+
+    // Update user
+    user.username = username;
+    user.email = email;
+    user.contactNumber = contactNumber;
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        contactNumber: user.contactNumber,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// Change password
+export const changePassword = async (req, res) => {
+  try {
+    const { userId, currentPassword, newPassword } = req.body;
+
+    // Find user
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.json({ success: false, message: 'User not found' });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+
+// Get all users (Admin only)
+export const getAllUsers = async (req, res) => {
+  try {
+    // Fetch all users, excluding password field
+    const users = await userModel.find({})
+      .select('-password')
+      .sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      users,
+      count: users.length
+    });
+
+  } catch (error) {
+    console.error('Get all users error:', error);
+    return res.json({
+      success: false,
+      message: error.message
+    });
+  }
+};

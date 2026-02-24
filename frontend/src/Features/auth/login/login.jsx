@@ -23,7 +23,7 @@ export default function LoginPage() {
     if (userStr) {
       const user = JSON.parse(userStr);
       if (user.role === 'admin') {
-        navigate('/admin/overview');
+        navigate('/Admin/overview');
       } else if (user.role === 'host') {
         // Check if has approved homestay
         if (user.hasApprovedHomestay) {
@@ -76,11 +76,11 @@ export default function LoginPage() {
         } else {
           // Normal role-based navigation
           if (role === 'admin') {
-            navigate('/admin/overview');
+            navigate('/Admin/overview');
           } else if (role === 'host') {
             // Check if host has approved homestay
             if (result.user.hasApprovedHomestay) {
-              navigate('/host/dashboard');
+              navigate('/Hosts/hostDashboard');
             } else {
               alert('⏳ Your homestay is pending admin approval.\n\n📧 You will receive an email once approved.\n\n💡 You can access the host dashboard after approval.');
               navigate('/');
