@@ -1,0 +1,481 @@
+/* ============ HOST BOOKINGS ============ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.host-bookings {
+  font-family: 'Inter', sans-serif;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hb-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+/* Header */
+.hb-header {
+  margin-bottom: 32px;
+}
+
+.hb-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.hb-subtitle {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Stats Cards */
+.hb-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.hb-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hb-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.hb-stat-card.active {
+  border-color: #22c55e;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.2);
+}
+
+.hb-stat-card .stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hb-stat-card .stat-icon.total {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+
+.hb-stat-card .stat-icon.confirmed {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+
+.hb-stat-card .stat-icon.completed {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+}
+
+.hb-stat-card .stat-icon.cancelled {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #991b1b;
+}
+
+.hb-stat-card .stat-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.hb-stat-card .stat-label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Controls */
+.hb-controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.hb-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.hb-search:focus-within {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.hb-search svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.hb-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+}
+
+.hb-search input::placeholder {
+  color: #94a3b8;
+}
+
+.hb-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.hb-filter-group svg {
+  color: #64748b;
+}
+
+.hb-filter-group select {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Bookings List */
+.hb-bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hb-booking-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  animation: slideUp 0.5s ease both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hb-booking-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Card Header */
+.hb-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-bottom: 2px solid #bbf7d0;
+}
+
+.hb-booking-id {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.hb-booking-date {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Status Badge */
+.hb-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hb-status-badge.success {
+  background: #22c55e;
+  color: white;
+}
+
+.hb-status-badge.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.hb-status-badge.info {
+  background: #3b82f6;
+  color: white;
+}
+
+/* Card Body */
+.hb-card-body {
+  padding: 24px;
+}
+
+.hb-section {
+  margin-bottom: 20px;
+}
+
+.hb-section:last-child {
+  margin-bottom: 0;
+}
+
+.hb-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.hb-section-title svg {
+  color: #22c55e;
+}
+
+/* Info Grid */
+.hb-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.hb-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.hb-info-item svg {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+/* Details Grid */
+.hb-details-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.hb-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.hb-detail-item .detail-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hb-detail-item .detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Payment Info */
+.hb-payment-info {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.payment-row.highlight {
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 8px 0;
+}
+
+.payment-row .amount {
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.payment-row.small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.payment-row .txn-id {
+  font-family: monospace;
+  font-size: 11px;
+}
+
+/* Action Buttons */
+.hb-card-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  background: #f8fafc;
+  border-top: 2px solid #e2e8f0;
+}
+
+.hb-delete-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  color: #ef4444;
+  border: 2px solid #fca5a5;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hb-delete-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.hb-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Cancellation Note */
+.hb-cancellation-note {
+  padding: 16px 24px;
+  background: #fef2f2;
+  border-top: 2px solid #fca5a5;
+  font-size: 13px;
+  color: #991b1b;
+}
+
+/* No Bookings */
+.hb-no-bookings {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.hb-no-bookings svg {
+  color: #cbd5e1;
+  margin-bottom: 20px;
+}
+
+.hb-no-bookings h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.hb-no-bookings p {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .hb-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hb-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hb-details-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hb-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .hb-controls {
+    flex-direction: column;
+  }
+
+  .hb-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hb-card-actions {
+    flex-direction: column;
+  }
+
+  .hb-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

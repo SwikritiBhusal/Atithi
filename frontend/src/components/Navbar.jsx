@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Calendar } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 import "./Navbar.css";
 import Logo from '../assets/images/atithi-high-resolution-logo.png';
 
@@ -79,20 +80,26 @@ export default function Navbar() {
   const handleProfileClick = () => {
     setShowDropdown(false);
     if (userRole === 'admin') {
-      navigate('/Admin/overview'); // Profile tab in sidebar
+      navigate('/Admin/overview');
     } else if (userRole === 'host') {
-      navigate('/Hosts/hostDashboard'); // Profile tab in sidebar
+      navigate('/Hosts/hostDashboard');
     } else {
-      navigate('/MyProfile'); // Dedicated profile page for tourists
+      navigate('/MyProfile');
     }
   };
 
   const handleDashboardClick = () => {
+    setShowDropdown(false);
     if (userRole === 'admin') {
       navigate('/Admin/overview');
     } else if (userRole === 'host') {
       navigate('/Hosts/hostDashboard');
     }
+  };
+
+  const handleMyBookingsClick = () => {
+    setShowDropdown(false);
+    navigate('/my-bookings');
   };
 
   // Don't show navbar on admin/host dashboard pages
@@ -140,6 +147,7 @@ export default function Navbar() {
           )}
 
           <div className="nav-buttons">
+            {isLoggedIn && <NotificationBell />}
             {isLoggedIn ? (
               <div className="profile-dropdown-container" ref={dropdownRef}>
                 <button 
@@ -172,6 +180,15 @@ export default function Navbar() {
                       <span>My Profile</span>
                     </button>
 
+                    {/* My Bookings - Only for Tourists */}
+                    {userRole === 'tourist' && (
+                      <button className="dropdown-item" onClick={handleMyBookingsClick}>
+                        <Calendar size={16} />
+                        <span>My Bookings</span>
+                      </button>
+                    )}
+
+                    {/* Dashboard - Only for Admin/Host */}
                     {(userRole === 'admin' || userRole === 'host') && (
                       <button className="dropdown-item" onClick={handleDashboardClick}>
                         <User size={16} />

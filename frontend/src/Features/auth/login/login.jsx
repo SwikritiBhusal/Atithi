@@ -82,7 +82,7 @@ export default function LoginPage() {
             if (result.user.hasApprovedHomestay) {
               navigate('/Hosts/hostDashboard');
             } else {
-              alert('⏳ Your homestay is pending admin approval.\n\n📧 You will receive an email once approved.\n\n💡 You can access the host dashboard after approval.');
+              alert('⏳ Your homestay is pending admin approval.\n\n You will receive an email once approved.\n\n You can access the host dashboard after approval.');
               navigate('/');
             }
           } else {
@@ -119,6 +119,7 @@ export default function LoginPage() {
                   <img src={Logo} alt="Namaste Logo" className="logo-imagee" />
                 </div>
               </div>
+              <h3><b>Welcome Back!</b></h3>
               <p className="welcome-textt">Please login to continue.</p>
             </div>
 

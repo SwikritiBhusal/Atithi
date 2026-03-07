@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './overview.css';
 import Logo from "../../assets/images/atithi-high-resolution-logo.png";
+import NotificationBell from '../../components/NotificationBell';
 import { 
   Home, 
   Users, 

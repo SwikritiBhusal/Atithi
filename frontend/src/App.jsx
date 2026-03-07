@@ -6,7 +6,6 @@ import { Routes, Route } from 'react-router-dom';
 import RegisterPage from './Features/auth/register/register';
 import LoginPage from './Features/auth/login/login';
 import HomePage from './Features/homePage/home';
-
 import EmailVerify from './Features/auth/EmailVerify';
 import ResetPassword from './Features/auth/ResetPassword';
 import ForgotPassword from './Features/auth/ForgotPassword';
@@ -15,11 +14,14 @@ import AdminDashboard from './Features/Admin/overview';
 // import Homestays from './Features/Admin/homestays';
 import HomestayListings from './Features/homestayListings';
 import HomestayDetails from './Features/homestayDetails';
+import BookingConfirmation from './Features/BookingConfirmation';
 import HostDashboard from './Features/Hosts/hostDashboard';
 import MyProfile from './Features/MyProfile';
 import AdminProfile from './Features/Admin/AdminProfile';
-
-
+import Payment from './Features/Payment';
+import PaymentVerify from './Features/PaymentVerify';
+import PaymentSuccess from './Features/Paymentsuccess';
+import UserBookings from './Features/userBooking';
 // Protected Routes
 import { AdminProtectedRoute, HostProtectedRoute } from './components/ProtectedRoute';
 
@@ -40,11 +42,16 @@ function App() {
       <Route path="/HomestayForm" element={<HomestayForm />} />
        <Route path="/MyProfile" element={<MyProfile />} />
        <Route path="/AdminProfile" element={<AdminProfile />} />
+       <Route path="/payment" element={<Payment />} />
+       <Route path="/payment/verify" element={<PaymentVerify />} />
+       <Route path="/payment/success" element={<PaymentSuccess />} />
 
       {/* <Route path="/overview" element={<AdminDashboard />} /> 
       <Route path="/homestays" element={<Homestays />} />  */}
       <Route path="/homestayListings" element={<HomestayListings />} /> 
       <Route path="/homestay/:id" element={<HomestayDetails />} />
+      <Route path="/homestay/:id/confirm" element={<BookingConfirmation />} />
+      <Route path="/my-bookings" element={<UserBookings />} />
 
       
         {/* Admin Protected Routes */}

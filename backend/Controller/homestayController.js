@@ -1,5 +1,5 @@
-import Homestay from '../models/homeStayModel.js';
-import userModel from '../models/usermodel.js';
+import Homestay from '../models/homestayModel.js';
+// import userModel from '../models/usermodel.js';
 import transporter from '../Config/nodeMailer.js';
 
 // Submit homestay for verification

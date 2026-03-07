@@ -15,8 +15,8 @@ const transporter = nodemailer.createTransport({
     }
     
 });
-console.log("SMTP USER:", process.env.SMTP_USER);
-console.log("SMTP PASS:", process.env.SMTP_PASS);
+// console.log("SMTP USER:", process.env.SMTP_USER);
+// console.log("SMTP PASS:", process.env.SMTP_PASS);
 
 
 

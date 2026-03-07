@@ -1,0 +1,111 @@
+/* ============ PAYMENT VERIFY PAGE ============ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.payment-verify-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #faf8f5 0%, #f5f2ed 100%);
+  padding: 120px 24px 80px;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pv-container {
+  max-width: 500px;
+  width: 100%;
+}
+
+.pv-card {
+  background: white;
+  padding: 60px 40px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pv-icon {
+  margin-bottom: 24px;
+}
+
+.pv-card.verifying .pv-icon {
+  color: #a855f7;
+}
+
+.pv-card.success .pv-icon {
+  color: #22c55e;
+}
+
+.pv-card.failed .pv-icon {
+  color: #ef4444;
+}
+
+.pv-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pv-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.pv-message {
+  font-size: 16px;
+  color: #475569;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.pv-note {
+  font-size: 14px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.pv-back-btn {
+  margin-top: 24px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
+}
+
+.pv-back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(168, 85, 247, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .payment-verify-page {
+    padding: 100px 16px 60px;
+  }
+
+  .pv-card {
+    padding: 40px 24px;
+  }
+
+  .pv-title {
+    font-size: 24px;
+  }
+}

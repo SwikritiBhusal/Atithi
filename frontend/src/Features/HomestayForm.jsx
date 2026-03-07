@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X, Plus } from "lucide-react";
 import "./HomestayForm.css";
 import Navbar from "../components/Navbar";
+import { addNotificationForRole } from '../context/NotificationContext';
 
 const HomestayForm = () => {
   const navigate = useNavigate();
@@ -229,6 +230,12 @@ const HomestayForm = () => {
       const result = await response.json();
 
       if (result.success) {
+        // Notify admins that a new homestay needs approval
+        addNotificationForRole('admin', {
+          title: 'Homestay approval needed',
+          message: `${user.username} submitted a new homestay for review.`,
+        });
+
         alert('✅ Homestay submitted successfully!\n\n📧 You will be notified via email once the admin reviews and approves your submission.\n\n⏳ Please wait for approval before accessing the host dashboard.');
         navigate('/');
       } else {

@@ -1,0 +1,409 @@
+/* ============ KHALTI PAYMENT PAGE ============ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.khalti-payment-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #faf8f5 0%, #f5f2ed 100%);
+  padding: 120px 24px 80px;
+  font-family: 'Inter', sans-serif;
+}
+
+.kp-container {
+  max-width: 600px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kp-loading {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #64748b;
+}
+
+/* Back Button */
+.kp-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 32px;
+}
+
+.kp-back-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+/* Header */
+.kp-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.kp-lock-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.3);
+}
+
+.kp-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.kp-subtitle {
+  font-size: 16px;
+  color: #64748b;
+}
+
+/* Card */
+.kp-card {
+  background: white;
+  padding: 32px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  margin-bottom: 24px;
+}
+
+/* Section */
+.kp-section {
+  margin-bottom: 24px;
+}
+
+.kp-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+
+.kp-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 24px 0;
+}
+
+/* Summary Grid */
+.kp-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.kp-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.kp-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.kp-value {
+  font-size: 15px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Payment Breakdown */
+.kp-payment-breakdown {
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.kp-payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.kp-payment-row.highlight {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.kp-payment-row.muted {
+  color: #94a3b8;
+}
+
+.kp-amount-highlight {
+  color: #a855f7;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.kp-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+}
+
+.kp-total-amount {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Payment Method */
+.kp-payment-method {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 12px;
+  border: 2px solid #86efac;
+}
+
+.kp-khalti-logo {
+  height: 40px;
+  object-fit: contain;
+}
+
+.kp-method-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kp-method-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.kp-method-desc {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Error Message */
+.kp-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #fef2f2;
+  border: 2px solid #fca5a5;
+  border-radius: 10px;
+  color: #991b1b;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* Pay Button */
+.kp-pay-btn {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #5f27cd 0%, #341f97 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(95, 39, 205, 0.3);
+}
+
+.kp-pay-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(95, 39, 205, 0.4);
+}
+
+.kp-pay-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Mock Mode Notice */
+.kp-mock-notice {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #fcd34d;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.kp-mock-notice svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.kp-mock-notice strong {
+  font-size: 14px;
+  color: #92400e;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.kp-mock-notice p {
+  font-size: 13px;
+  color: #78350f;
+  margin: 0;
+}
+
+/* Button Group */
+.kp-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Mock Button */
+.kp-mock-btn {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+}
+
+.kp-mock-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(34, 197, 94, 0.4);
+}
+
+.kp-mock-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Pay Button (when with mock) */
+
+.kp-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Security Note */
+.kp-security-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #065f46;
+  font-weight: 500;
+}
+
+/* Info Cards */
+.kp-info-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.kp-info-card {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.kp-info-card svg {
+  color: #22c55e;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.kp-info-card h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.kp-info-card p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .khalti-payment-page {
+    padding: 100px 16px 60px;
+  }
+
+  .kp-card {
+    padding: 24px;
+  }
+
+  .kp-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kp-info-cards {
+    grid-template-columns: 1fr;
+  }
+}

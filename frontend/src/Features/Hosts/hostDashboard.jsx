@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, Calendar, User, LogOut, Menu, X } from 'lucide-react';
+import NotificationBell from '../../components/NotificationBell';
 import './hostDashboard.css';
 import MyHomestay from './MyHomestay';
 import Logo from "../../assets/images/atithi-high-resolution-logo.png";
-// import HostBookings from './HostBookings';
+import HostBookings from './hostBookings';
 import HostProfile from './HostProfile';
 
 export default function HostDashboard() {
@@ -57,8 +58,8 @@ export default function HostDashboard() {
     switch (activeTab) {
       case 'homestay':
         return <MyHomestay />;
-      // case 'bookings':
-      //   return <HostBookings />;
+      case 'bookings':
+        return <HostBookings />;
       case 'profile':
         return <HostProfile />;
       default:
@@ -138,6 +139,9 @@ export default function HostDashboard() {
       {/* Main Content */}
       <main className={`hd-main ${sidebarOpen ? '' : 'expanded'}`}>
         <div className="hd-content">
+          <div className="hd-topbar">
+            <NotificationBell compact />
+          </div>
           {renderContent()}
         </div>
       </main>

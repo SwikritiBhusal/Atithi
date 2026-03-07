@@ -60,7 +60,7 @@ body {
 }
 
 .left-panel {
-  background: linear-gradient(135deg, #faf5ff 20%, #f4e6d6 30%, #f6bcb9 40%, #f5f3ff 100%);
+  background: linear-gradient(135deg, #d4b1e9 20%, #f3b7b7 30%, #f6bcb9 40%, #b5eace 100%);
   padding: 40px 30px;
   color: #1a1a1a;
   display: flex;
