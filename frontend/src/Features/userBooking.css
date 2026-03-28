@@ -467,3 +467,244 @@
     grid-template-columns: 1fr;
   }
 }
+ 
+/* Policy Info Banner */
+.ub-policy-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+}
+ 
+.ub-policy-info svg {
+  flex-shrink: 0;
+  color: #3b82f6;
+}
+ 
+/* Cancellation Box in Card */
+.ub-cancellation-box {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  border-radius: 8px;
+}
+ 
+.ub-cancellation-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #fecaca;
+  font-weight: 600;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+ 
+.ub-cancellation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+ 
+.ub-cancel-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: #7f1d1d;
+}
+ 
+.ub-cancel-row .label {
+  font-weight: 500;
+}
+ 
+.ub-cancel-row .value {
+  color: #991b1b;
+  text-align: right;
+}
+ 
+.ub-refund-info {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+}
+ 
+.ub-refund-row {
+  font-size: 0.8125rem;
+  color: #16a34a;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+ 
+.ub-refund-status {
+  font-size: 0.75rem;
+  color: #15803d;
+  font-weight: 500;
+}
+ 
+/* Cancel Section */
+.ub-cancel-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+ 
+.ub-cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: white;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  color: #ef4444;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+ 
+.ub-cancel-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+ 
+.refund-badge {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+ 
+/* Cancel Form */
+.ub-cancel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+ 
+.ub-cancel-input {
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+ 
+.ub-cancel-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+ 
+.ub-refund-preview {
+  padding: 0.875rem;
+  background: #f0fdf4;
+  border: 2px solid #22c55e;
+  border-radius: 6px;
+  text-align: center;
+}
+ 
+.refund-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #16a34a;
+  margin-bottom: 0.25rem;
+}
+ 
+.refund-percent {
+  font-size: 0.875rem;
+  color: #15803d;
+  font-weight: 600;
+}
+ 
+.refund-fee {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #dcfce7;
+}
+ 
+.ub-cancel-btns {
+  display: flex;
+  gap: 0.75rem;
+}
+ 
+.btn-confirm-cancel {
+  flex: 1;
+  padding: 0.75rem;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+ 
+.btn-confirm-cancel:hover {
+  background: #dc2626;
+}
+ 
+.btn-cancel-action {
+  flex: 1;
+  padding: 0.75rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+ 
+.btn-cancel-action:hover {
+  border-color: #9ca3af;
+  color: #1a1a1a;
+}
+ 
+/* Responsive */
+@media (max-width: 768px) {
+  .ub-cancel-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .ub-cancel-row .value {
+    text-align: left;
+  }
+  
+  .ub-cancel-btns {
+    flex-direction: column;
+  }
+}
+.ub-cancel-btn {
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ub-cancel-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}

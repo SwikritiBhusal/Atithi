@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; 
-import './home.css';  // Importing external CSS
+import './home.css';  
 import Navbar from "../../components/Navbar";
 import video1 from "../../assets/Videos/Tourism.mp4";
 import video2 from "../../assets/Videos/Tourism (1).mp4";
-
+import SmartRecommendation from '../../Features/SmartRecommendation';
 
 
 export default function HomePage() {
   const [location, setLocation] = useState('');
   const navigate = useNavigate();
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
 
   const featuredStays = [
     {
@@ -51,18 +52,18 @@ export default function HomePage() {
         <div className="hero-content">
           <h1>Find Your Perfect Homestay<br />in Nepal</h1>
           <p>Book local, authentic, and verified stays across Nepal</p>
+          <p>Get AI-powered personalized recommendations</p>
           
-          {/* <div className="search-box">
-            <input
-              type="text"
-              placeholder="e.g., Pokhara, Nagarkot"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="search-input"
-            />
-            <button className="search-button">Search</button>
-          </div> */}
+          <button 
+          className="ai-recommend-btn"
+          onClick={() => setShowQuestionnaire(true)}
+        >
+          ✨ Find My Perfect Match
+        </button>
         </div>
+        {showQuestionnaire && (
+        <SmartRecommendation onClose={() => setShowQuestionnaire(false)} />
+      )}
       </section>
 
       <section className="interests">

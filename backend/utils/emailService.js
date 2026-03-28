@@ -1,6 +1,6 @@
 
 // Import your existing transporter from config
-import transporter from '../config/nodeMailer.js';
+import transporter from '../Config/nodeMailer.js';
 
 // Send Booking Confirmation Email (Instant Booking - Payment Successful)
 export const sendBookingConfirmationEmail = async (booking) => {

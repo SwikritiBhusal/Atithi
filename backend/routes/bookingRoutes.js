@@ -6,8 +6,11 @@ import {
   getHostBookings,
   updateBookingStatus,
   getBookingDetails,
+   cancelBooking,
+  // getCancellationDetails,
   deleteBooking
 } from '../Controller/bookingController.js';
+import userAuth from '../Middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -25,6 +28,12 @@ router.get('/:bookingId', getBookingDetails);
 
 // PUT: Update booking status
 router.put('/update/:bookingId', updateBookingStatus);
+
+//  CANCEL BOOKING (requires auth)
+router.put('/cancel/:bookingId', userAuth, cancelBooking);
+ 
+// Get cancellation details
+// router.get('/cancellation/:bookingId', getCancellationDetails);
 
 // DELETE: Delete booking (for emergencies)
 router.delete('/delete/:bookingId', deleteBooking);

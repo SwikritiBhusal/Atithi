@@ -1,6 +1,6 @@
-// controllers/paymentController.js
 
 import axios from 'axios';
+import Notification from "../models/notificationsModel.js";
 
 // Check if we're in mock/test mode
 export const checkPaymentMode = async (req, res) => {
@@ -144,6 +144,12 @@ export const verifyKhaltiPayment = async (req, res) => {
         }
       }
     );
+    await Notification.create({
+  userId: booking.userId,
+  role: "tourist",
+  title: "Booking Confirmed",
+  message: `Your booking ${booking.bookingId} has been confirmed`
+});
 
     const paymentData = khaltiResponse.data;
 

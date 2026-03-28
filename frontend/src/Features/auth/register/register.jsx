@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import './register.css';
 import Navbar from "../../../components/Navbar";
 import Logo from "../../../assets/images/atithi-high-resolution-logo.png";
-import { addNotificationForRole } from '../../../context/NotificationContext';
+
 
 
 export default function RegisterPage() {
@@ -64,12 +64,6 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Notify admins about new user/host signup
-        addNotificationForRole('admin', {
-          title: formData.role === 'host' ? 'New host sign-up' : 'New user registered',
-          message: `${formData.username} (${formData.email}) just created a ${formData.role} account.`,
-        });
-
         alert(`Registration successful as ${formData.role}! Please check your email for OTP.`);
         navigate("/verify-email", { state: { email: formData.email } });
       } else {

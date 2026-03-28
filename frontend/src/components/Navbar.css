@@ -84,6 +84,36 @@ html, body {
   gap: 15px;
 }
 
+.favorites-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.favorites-btn:hover {
+  background: rgba(124, 58, 237, 0.12);
+}
+
+.favorites-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* Add Your Stay button */
 .btn-add-stay {
   padding: 9px 20px;

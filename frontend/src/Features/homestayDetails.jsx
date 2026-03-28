@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   MapPin, Home, Users, Clock, Check, ArrowLeft, Calendar,
   Wifi, Coffee, Mountain, Sun, Wind, Shield, ChevronLeft, ChevronRight,
-  Phone, Mail, User
+  Phone, Mail, User, Star
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import './homestayDetails.css';
@@ -22,7 +22,17 @@ export default function HomestayDetails() {
     rooms: 1
   });
 
+  const [userId, setUserId] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setUserId(user?._id || user?.id || null);
+    }
     fetchHomestayDetails();
   }, [id]);
 
@@ -34,6 +44,22 @@ export default function HomestayDetails() {
       const result = await response.json();
       if (result.success) {
         setHomestay(result.homestay);
+
+        // If user already left a review, prefill it
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          const currentUserId = parsed?._id || parsed?.id;
+          if (currentUserId) {
+            const existingReview = result.homestay.reviews?.find(
+              (r) => r.user === currentUserId || r.user?._id === currentUserId
+            );
+            if (existingReview) {
+              setReviewRating(existingReview.rating);
+              setReviewComment(existingReview.comment || '');
+            }
+          }
+        }
       } else {
         alert('Homestay not found!');
         navigate('/homestays');
@@ -127,6 +153,63 @@ export default function HomestayDetails() {
         nights 
       } 
     });
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!userId) {
+      alert('Please login to submit a review.');
+      return;
+    }
+
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
+      alert('Please provide a rating between 1 and 5.');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/homestay/${id}/review`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment })
+      });
+
+      const result = await response.json();
+      if (result.success && result.homestay) {
+        setHomestay(result.homestay);
+        setReviewComment('');
+        alert('Your review has been saved!');
+      } else {
+        alert(result.message || 'Could not submit review.');
+      }
+    } catch (error) {
+      console.error('Review submit error:', error);
+      alert('Something went wrong while submitting your review.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const renderStarInputs = () => {
+    const stars = [];
+    for (let i = 1; i <= 5; i += 1) {
+      stars.push(
+        <button
+          key={i}
+          type="button"
+          className={`star-button ${i <= reviewRating ? 'active' : ''}`}
+          onClick={() => setReviewRating(i)}
+          aria-label={`${i} star${i > 1 ? 's' : ''}`}
+        >
+          <Star size={18} fill={i <= reviewRating ? '#fbbf24' : 'none'} stroke="#fbbf24" />
+        </button>
+      );
+    }
+    return stars;
   };
 
   if (loading) {
@@ -430,6 +513,69 @@ export default function HomestayDetails() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </section>
+
+              {/* Reviews Section */}
+              <section className="details-section reviews-section">
+                <h2>Reviews</h2>
+
+                <div className="review-summary">
+                  <div className="review-score">
+                    <Star size={20} fill={homestay.averageRating > 0 ? '#fbbf24' : 'none'} stroke="#fbbf24" />
+                    <span className="score-text">
+                      {homestay.averageRating > 0 ? homestay.averageRating.toFixed(1) : 'New'}
+                    </span>
+                    <span className="review-count">
+                      {homestay.reviewCount ? `(${homestay.reviewCount} review${homestay.reviewCount === 1 ? '' : 's'})` : '(No reviews yet)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Leave a Review */}
+                <div className="review-form">
+                  <h3>{userId ? 'Leave a review' : 'Log in to leave a review'}</h3>
+                  <div className="rating-select">
+                    {renderStarInputs()}
+                  </div>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Share what you loved about this stay..."
+                    rows={4}
+                    disabled={!userId}
+                  />
+                  <button
+                    className="submit-review-btn"
+                    onClick={handleReviewSubmit}
+                    disabled={!userId || isSubmittingReview}
+                  >
+                    {isSubmittingReview ? 'Saving…' : 'Submit Review'}
+                  </button>
+                </div>
+
+                {/* Review List */}
+                <div className="reviews-list">
+                  {homestay.reviews && homestay.reviews.length > 0 ? (
+                    homestay.reviews
+                      .slice()
+                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                      .map((review) => (
+                        <div key={review._id || review.createdAt} className="review-card">
+                          <div className="review-header">
+                            <div className="reviewer-name">{review.name}</div>
+                            <div className="review-rating">
+                              <Star size={14} fill="#fbbf24" stroke="#fbbf24" />
+                              <span>{review.rating.toFixed(1)}</span>
+                            </div>
+                          </div>
+                          {review.comment && <p className="review-comment">{review.comment}</p>}
+                          <div className="review-date">{new Date(review.createdAt).toLocaleDateString()}</div>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="no-reviews">Be the first to review this homestay!</p>
+                  )}
                 </div>
               </section>
 

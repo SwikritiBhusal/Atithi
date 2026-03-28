@@ -7,6 +7,8 @@ import homestayRouter from "./routes/homestayRoutes.js";
 import cookieParser from "cookie-parser";
 import paymentRoutes from './routes/paymentRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import recommendationRoutes from './routes/recommendationRoutes.js';
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
@@ -35,7 +37,8 @@ app.use('/api/homestay', homestayRouter);
 app.use('/api/payment', paymentRoutes);
 // Use booking routes (add this with your other routes)
 app.use('/api/booking', bookingRoutes);
-
+app.use('/api/recommendations', recommendationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 export default app;

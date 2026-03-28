@@ -35,7 +35,20 @@ const homestaySchema = new mongoose.Schema({
   
   // NEW: Special Features
   specialFeatures: [String],  // ← NEW
-  
+
+  //  Reviews & Ratings
+  reviews: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      name: { type: String, required: true },
+      rating: { type: Number, min: 1, max: 5, required: true },
+      comment: String,
+      createdAt: { type: Date, default: Date.now }
+    }
+  ],
+  averageRating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 },
+
   // NEW: House Rules
   smokingAllowed: { type: Boolean, default: false },  // ← NEW
   petsAllowed: { type: Boolean, default: false },      // ← NEW

@@ -24,8 +24,8 @@ import PaymentSuccess from './Features/Paymentsuccess';
 import UserBookings from './Features/userBooking';
 // Protected Routes
 import { AdminProtectedRoute, HostProtectedRoute } from './components/ProtectedRoute';
-
-
+import RecommendationResults from './Features/RecommendationResult';
+import Favorites from './Features/Favorites';
 
 function App() {
   const [count, setCount] = useState(0);
@@ -45,6 +45,8 @@ function App() {
        <Route path="/payment" element={<Payment />} />
        <Route path="/payment/verify" element={<PaymentVerify />} />
        <Route path="/payment/success" element={<PaymentSuccess />} />
+       <Route path="/recommendations/results" element={<RecommendationResults />} />
+       <Route path="/favorites" element={<Favorites />} />
 
       {/* <Route path="/overview" element={<AdminDashboard />} /> 
       <Route path="/homestays" element={<Homestays />} />  */}
@@ -82,6 +84,7 @@ function App() {
             </HostProtectedRoute>
           } 
         />
+
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<HomePage />} />

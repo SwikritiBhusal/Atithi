@@ -63,14 +63,14 @@ const bookingSchema = new mongoose.Schema({
   },
   paymentOption: {
     type: String,
-    enum: ['advance', 'full'],
+    enum: ['advance', 'full'],  // ✅ YOUR ORIGINAL (CORRECT)
     required: true
   },
 
   // Payment Details
   paymentStatus: {
     type: String,
-    enum: ['partial', 'full'],  // Removed 'pending' - payment is done before booking
+    enum: ['partial', 'full'],
     default: 'partial'
   },
   khaltiTransactionId: {
@@ -83,14 +83,14 @@ const bookingSchema = new mongoose.Schema({
     type: Date
   },
 
-  // Booking Status (INSTANT BOOKING - no 'pending' or 'rejected')
+  // Booking Status (INSTANT BOOKING)
   status: {
     type: String,
-    enum: ['confirmed', 'cancelled', 'completed'],  // Removed 'pending' and 'rejected'
-    default: 'confirmed'  // INSTANT BOOKING - automatically confirmed
+    enum: ['confirmed', 'cancelled', 'completed'],
+    default: 'confirmed'
   },
 
-  // Guest Information (for easy access)
+  // Guest Information
   guestName: {
     type: String,
     required: true
@@ -100,24 +100,24 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
   guestPhone: {
-    type: String
+    type: String  // ✅ YOUR ORIGINAL
   },
 
-  // Homestay Information (snapshot for record)
+  // Homestay Information (snapshot)
   homestayName: {
     type: String,
     required: true
   },
   homestayLocation: {
-    type: String
+    type: String  // ✅ YOUR ORIGINAL
   },
 
   // Additional Notes
   specialRequests: {
-    type: String
+    type: String  // ✅ YOUR ORIGINAL
   },
   cancellationReason: {
-    type: String
+    type: String  // ✅ YOUR ORIGINAL
   },
 
   // Timestamps
@@ -135,6 +135,23 @@ const bookingSchema = new mongoose.Schema({
 bookingSchema.pre("save", async function () {
   this.updatedAt = Date.now();
 });
+
+// Virtual to link with Cancellation model
+bookingSchema.virtual('cancellation', {
+  ref: 'Cancellation',
+  localField: '_id',
+  foreignField: 'bookingId',
+  justOne: true
+});
+
+// Include virtuals in JSON/Object
+bookingSchema.set('toJSON', { virtuals: true });
+bookingSchema.set('toObject', { virtuals: true });
+
+// Indexes for performance
+bookingSchema.index({ userId: 1, createdAt: -1 });
+bookingSchema.index({ hostId: 1, createdAt: -1 });
+bookingSchema.index({ status: 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
 

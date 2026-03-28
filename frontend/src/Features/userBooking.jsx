@@ -8,7 +8,10 @@ import {
   User,
   Search,
   Filter,
-  ChevronRight
+  ChevronRight,
+  XCircle,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import './userBooking.css';
@@ -17,15 +20,16 @@ export default function UserBookings() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, pending, confirmed, completed, cancelled
+  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [user, setUser] = useState(null);
+  // ⭐ NEW: Cancellation states
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
 
   useEffect(() => {
-    // Check if user is logged in
     const userStr = localStorage.getItem('user');
     if (!userStr) {
-      // Save the intended destination
       sessionStorage.setItem('redirectAfterLogin', '/my-bookings');
       alert('Please login to view your bookings');
       navigate('/login');
@@ -35,7 +39,6 @@ export default function UserBookings() {
     const userData = JSON.parse(userStr);
     setUser(userData);
     
-    // Fetch bookings for the logged-in user
     fetchBookings(userData.id);
   }, [navigate]);
 
@@ -57,7 +60,75 @@ export default function UserBookings() {
     }
   };
 
-  // Filter bookings
+  // ⭐ NEW: Cancel booking function
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?\n\n• Within 2 hours: 100% refund\n• After 2 hours: 80% refund (20% fee)')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/booking/cancel/${bookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          reason: cancellationReason || 'No reason provided'
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ ${result.info.title}\n\n${result.info.message}\n\n⏰ ${result.info.refundTimeline}`);
+        
+        fetchBookings(user.id);
+        setCancellingBookingId(null);
+        setCancellationReason('');
+      } else {
+        alert('❌ ' + (result.message || 'Failed to cancel booking'));
+      }
+    } catch (error) {
+      console.error('Cancel booking error:', error);
+      alert('❌ Failed to cancel booking');
+    }
+  };
+
+  // ⭐ NEW: Check if booking can be cancelled
+  const canCancelBooking = (booking) => {
+    if (booking.status !== 'confirmed') return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const checkInDate = new Date(booking.checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
+    
+    return today < checkInDate;
+  };
+
+  // ⭐ NEW: Calculate refund preview
+  const getRefundAmount = (booking) => {
+    const now = new Date();
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const hoursSinceBooking = (now - bookingCreatedAt) / (1000 * 60 * 60);
+
+    if (hoursSinceBooking <= 2) {
+      return {
+        amount: booking.advancePayment,
+        percentage: 100,
+        fee: 0
+      };
+    } else {
+      return {
+        amount: Math.round(booking.advancePayment * 0.8),
+        percentage: 80,
+        fee: Math.round(booking.advancePayment * 0.2)
+      };
+    }
+  };
+
   const filteredBookings = bookings.filter(booking => {
     const matchesFilter = filter === 'all' || booking.status === filter;
     const matchesSearch = 
@@ -113,7 +184,6 @@ export default function UserBookings() {
       <Navbar />
       <div className="user-bookings-page">
         <div className="ub-container">
-          {/* Header */}
           <div className="ub-header">
             <div>
               <h1 className="ub-title">My Bookings</h1>
@@ -121,7 +191,14 @@ export default function UserBookings() {
             </div>
           </div>
 
-          {/* Stats Cards */}
+          {/* ⭐ NEW: Policy Info */}
+          <div className="ub-policy-info">
+            <Info size={16} />
+            <span>
+              <strong>Cancellation Policy:</strong> Within 2 hours = 100% refund. After 2 hours, before check-in = 80% refund (20% fee). No cancellation on/after check-in.
+            </span>
+          </div>
+
           <div className="ub-stats">
             <div className={`ub-stat-card ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
               <div className="stat-icon total">
@@ -164,7 +241,6 @@ export default function UserBookings() {
             </div>
           </div>
 
-          {/* Search & Filter */}
           <div className="ub-controls">
             <div className="ub-search">
               <Search size={20} />
@@ -187,7 +263,6 @@ export default function UserBookings() {
             </div>
           </div>
 
-          {/* Bookings List */}
           {filteredBookings.length === 0 ? (
             <div className="ub-no-bookings">
               <Home size={64} />
@@ -202,91 +277,169 @@ export default function UserBookings() {
             </div>
           ) : (
             <div className="ub-bookings-grid">
-              {filteredBookings.map((booking, index) => (
-                <div key={booking._id} className="ub-booking-card" style={{ animationDelay: `${index * 0.1}s` }}>
-                  {/* Homestay Image */}
-                  <div className="ub-card-image">
-                    {booking.homestayId?.homestayPhotos && booking.homestayId.homestayPhotos.length > 0 ? (
-                      <img 
-                        src={booking.homestayId.homestayPhotos[0].url} 
-                        alt={booking.homestayName}
-                      />
-                    ) : (
-                      <div className="ub-no-image">
-                        <Home size={40} />
+              {filteredBookings.map((booking, index) => {
+                const refundInfo = getRefundAmount(booking);
+                
+                return (
+                  <div key={booking._id} className="ub-booking-card" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <div className="ub-card-image">
+                      {booking.homestayId?.homestayPhotos && booking.homestayId.homestayPhotos.length > 0 ? (
+                        <img 
+                          src={booking.homestayId.homestayPhotos[0].url} 
+                          alt={booking.homestayName}
+                        />
+                      ) : (
+                        <div className="ub-no-image">
+                          <Home size={40} />
+                        </div>
+                      )}
+                      {getStatusBadge(booking.status)}
+                    </div>
+
+                    <div className="ub-card-content">
+                      <h3 className="ub-card-title">{booking.homestayName}</h3>
+                      
+                      <div className="ub-card-location">
+                        <MapPin size={14} />
+                        <span>{booking.homestayLocation}</span>
                       </div>
-                    )}
-                    {getStatusBadge(booking.status)}
+
+                      <div className="ub-card-details">
+                        <div className="ub-detail-item">
+                          <Calendar size={16} />
+                          <div>
+                            <span className="detail-label">Check-in</span>
+                            <span className="detail-value">{formatDate(booking.checkIn)}</span>
+                          </div>
+                        </div>
+
+                        <div className="ub-detail-item">
+                          <Calendar size={16} />
+                          <div>
+                            <span className="detail-label">Check-out</span>
+                            <span className="detail-value">{formatDate(booking.checkOut)}</span>
+                          </div>
+                        </div>
+
+                        <div className="ub-detail-item">
+                          <Clock size={16} />
+                          <div>
+                            <span className="detail-label">Duration</span>
+                            <span className="detail-value">{booking.nights} Night(s)</span>
+                          </div>
+                        </div>
+
+                        <div className="ub-detail-item">
+                          <Home size={16} />
+                          <div>
+                            <span className="detail-label">Rooms</span>
+                            <span className="detail-value">{booking.rooms} Room(s)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ⭐ NEW: Cancellation Info Box */}
+                      {booking.status === 'cancelled' && booking.cancellation && (
+                        <div className="ub-cancellation-box">
+                          <div className="ub-cancellation-header">
+                            <XCircle size={16} />
+                            <span>Cancelled</span>
+                          </div>
+                          <div className="ub-cancellation-body">
+                            <div className="ub-cancel-row">
+                              <span className="label">Cancelled:</span>
+                              <span className="value">
+                                {new Date(booking.cancellation.cancelledAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {booking.cancellation.reason && (
+                              <div className="ub-cancel-row">
+                                <span className="label">Reason:</span>
+                                <span className="value">{booking.cancellation.reason}</span>
+                              </div>
+                            )}
+                            <div className="ub-refund-info">
+                              <div className="ub-refund-row">
+                                <span>Refund: NPR {booking.cancellation.refundAmount?.toLocaleString()} ({booking.cancellation.refundPercentage}%)</span>
+                              </div>
+                              <div className="ub-refund-status">
+                                {booking.cancellation.refundStatus === 'pending' && '⏳ Processing within 24 hours'}
+                                {booking.cancellation.refundStatus === 'processing' && '🔄 Processing'}
+                                {booking.cancellation.refundStatus === 'completed' && '✅ Completed'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="ub-card-footer">
+                        <div className="ub-price-section">
+                          <span className="price-label">Total Paid</span>
+                          <span className="price-value">NPR {booking.advancePayment.toLocaleString()}</span>
+                          {booking.remainingPayment > 0 && (
+                            <span className="price-remaining">+{booking.remainingPayment.toLocaleString()} at property</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/*NEW: Cancel Button */}
+                      {canCancelBooking(booking) && (
+                        <div className="ub-cancel-section">
+                          {cancellingBookingId === booking._id ? (
+                            <div className="ub-cancel-form">
+                              <input
+                                type="text"
+                                placeholder="Reason (optional)"
+                                value={cancellationReason}
+                                onChange={(e) => setCancellationReason(e.target.value)}
+                                className="ub-cancel-input"
+                              />
+                              <div className="ub-refund-preview">
+                                <div className="refund-amount">NPR {refundInfo.amount.toLocaleString()}</div>
+                                <div className="refund-percent">{refundInfo.percentage}% refund</div>
+                                {refundInfo.fee > 0 && (
+                                  <div className="refund-fee">Fee: NPR {refundInfo.fee.toLocaleString()}</div>
+                                )}
+                              </div>
+                              <div className="ub-cancel-btns">
+                                <button
+                                  className="btn-confirm-cancel"
+                                  onClick={() => handleCancelBooking(booking._id)}
+                                >
+                                  Confirm Cancel
+                                </button>
+                                <button
+                                  className="btn-cancel-action"
+                                  onClick={() => {
+                                    setCancellingBookingId(null);
+                                    setCancellationReason('');
+                                  }}
+                                >
+                                  Nevermind
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              className="ub-cancel-btn"
+                              onClick={() => setCancellingBookingId(booking._id)}
+                            >
+                              <XCircle size={16} />
+                              Cancel Booking
+                              <span className="refund-badge">{refundInfo.percentage}%</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="ub-card-meta">
+                        <span className="booking-id">Ref: {booking.bookingId}</span>
+                        <span className="booking-date">Booked on {formatDate(booking.createdAt)}</span>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Card Content */}
-                  <div className="ub-card-content">
-                    <h3 className="ub-card-title">{booking.homestayName}</h3>
-                    
-                    <div className="ub-card-location">
-                      <MapPin size={14} />
-                      <span>{booking.homestayLocation}</span>
-                    </div>
-
-                    <div className="ub-card-details">
-                      <div className="ub-detail-item">
-                        <Calendar size={16} />
-                        <div>
-                          <span className="detail-label">Check-in</span>
-                          <span className="detail-value">{formatDate(booking.checkIn)}</span>
-                        </div>
-                      </div>
-
-                      <div className="ub-detail-item">
-                        <Calendar size={16} />
-                        <div>
-                          <span className="detail-label">Check-out</span>
-                          <span className="detail-value">{formatDate(booking.checkOut)}</span>
-                        </div>
-                      </div>
-
-                      <div className="ub-detail-item">
-                        <Clock size={16} />
-                        <div>
-                          <span className="detail-label">Duration</span>
-                          <span className="detail-value">{booking.nights} Night(s)</span>
-                        </div>
-                      </div>
-
-                      <div className="ub-detail-item">
-                        <Home size={16} />
-                        <div>
-                          <span className="detail-label">Rooms</span>
-                          <span className="detail-value">{booking.rooms} Room(s)</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="ub-card-footer">
-                      <div className="ub-price-section">
-                        <span className="price-label">Total Paid</span>
-                        <span className="price-value">NPR {booking.advancePayment.toLocaleString()}</span>
-                        {booking.remainingPayment > 0 && (
-                          <span className="price-remaining">+{booking.remainingPayment.toLocaleString()} at property</span>
-                        )}
-                      </div>
-
-                      <button 
-                        className="ub-view-btn"
-                        onClick={() => navigate(`/booking/${booking.bookingId}`, { state: { booking } })}
-                      >
-                        View Details
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-
-                    <div className="ub-card-meta">
-                      <span className="booking-id">Ref: {booking.bookingId}</span>
-                      <span className="booking-date">Booked on {formatDate(booking.createdAt)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

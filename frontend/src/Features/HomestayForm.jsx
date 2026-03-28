@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X, Plus } from "lucide-react";
 import "./HomestayForm.css";
 import Navbar from "../components/Navbar";
-import { addNotificationForRole } from '../context/NotificationContext';
+
 
 const HomestayForm = () => {
   const navigate = useNavigate();
@@ -230,12 +230,6 @@ const HomestayForm = () => {
       const result = await response.json();
 
       if (result.success) {
-        // Notify admins that a new homestay needs approval
-        addNotificationForRole('admin', {
-          title: 'Homestay approval needed',
-          message: `${user.username} submitted a new homestay for review.`,
-        });
-
         alert('✅ Homestay submitted successfully!\n\n📧 You will be notified via email once the admin reviews and approves your submission.\n\n⏳ Please wait for approval before accessing the host dashboard.');
         navigate('/');
       } else {
@@ -457,18 +451,26 @@ const HomestayForm = () => {
             ></textarea>
 
             {/* NEW: Cancellation Policy */}
+            
+            {/* ⭐ UPDATED: Simple Cancellation Policy Info Box */}
             <h3 className="homestay-section-title">Cancellation Policy</h3>
-            <select
-              className="homestay-input"
-              name="cancellationPolicy"
-              value={formData.cancellationPolicy}
-              onChange={handleChange}
-              required
-            >
-              <option value="flexible">Flexible - Free cancellation up to 7 days before check-in</option>
-              <option value="moderate">Moderate - Free cancellation up to 14 days before, 50% refund 7-14 days before</option>
-              <option value="strict">Strict - No refunds within 30 days of check-in</option>
-            </select>
+            <div className="cancellation-policy-info">
+              <div className="policy-info-box">
+                <div className="policy-icon">ℹ️</div>
+                <div className="policy-content">
+                  <h4>Standard Atithi Cancellation Policy</h4>
+                  <p className="policy-subtitle">All homestays follow this simple, fair policy:</p>
+                  <ul className="policy-points">
+                    <li><strong>✅ Within 2 hours of booking:</strong> 100% refund (grace period for mistakes)</li>
+                    <li><strong>✅ More than 2 hours, before check-in day:</strong> 80% refund (20% cancellation fee)</li>
+                    <li><strong>❌ On check-in day or after:</strong> No cancellation allowed</li>
+                  </ul>
+                  <p className="policy-note">
+                    💡 This policy protects both hosts and guests while maintaining flexibility for travelers. Refunds are processed within 7-10 business days.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* KYC Documents */}
             <h3 className="homestay-section-title">KYC Documents</h3>

@@ -12,7 +12,7 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { useNotifications } from '../../context/NotificationContext';
+
 import './hostBookings.css';
 
 export default function HostBookings() {
@@ -21,40 +21,13 @@ export default function HostBookings() {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [processingId, setProcessingId] = useState(null);
-  const { addNotification } = useNotifications();
+
 
   useEffect(() => {
     fetchBookings();
   }, []);
 
-  useEffect(() => {
-    // Notify host when a new confirmed booking arrives (based on bookingId)
-    if (!bookings || bookings.length === 0) return;
 
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return;
-    const user = JSON.parse(userStr);
-    const hostId = user.id || user._id;
-    if (!hostId) return;
-
-    const key = `host_lastNotified_${hostId}`;
-    const confirmedBookings = bookings
-      .filter((b) => b.status === 'confirmed')
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    if (confirmedBookings.length === 0) return;
-
-    const latestBooking = confirmedBookings[0];
-    const lastNotifiedBookingId = localStorage.getItem(key);
-
-    if (lastNotifiedBookingId !== latestBooking.bookingId) {
-      addNotification({
-        title: 'New booking confirmed',
-        message: `Booking ${latestBooking.bookingId} has been confirmed.`,
-      });
-      localStorage.setItem(key, latestBooking.bookingId);
-    }
-  }, [bookings, addNotification]);
 
   const fetchBookings = async () => {
     try {

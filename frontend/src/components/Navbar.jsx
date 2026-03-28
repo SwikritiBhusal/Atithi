@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { User, Settings, LogOut, ChevronDown, Calendar } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Calendar, Heart } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import "./Navbar.css";
 import Logo from '../assets/images/atithi-high-resolution-logo.png';
@@ -11,6 +11,7 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userName, setUserName] = useState('');
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -39,6 +40,41 @@ export default function Navbar() {
     return () => window.removeEventListener('storage', checkLoginStatus);
   }, [location]);
 
+  useEffect(() => {
+    const fetchFavoritesCount = async () => {
+      if (!isLoggedIn) {
+        setFavoritesCount(0);
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:5000/api/user/favorites', {
+          credentials: 'include',
+        });
+        const result = await response.json();
+        if (result.success && Array.isArray(result.favorites)) {
+          setFavoritesCount(result.favorites.length);
+        } else {
+          setFavoritesCount(0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch favorites count', error);
+        setFavoritesCount(0);
+      }
+    };
+
+    fetchFavoritesCount();
+
+    const handleFavoritesUpdated = () => {
+      fetchFavoritesCount();
+    };
+
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
+    return () => {
+      window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
+    };
+  }, [isLoggedIn]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -60,8 +96,13 @@ export default function Navbar() {
       const result = await response.json();
       
       if (result.success) {
+        // Clear localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        
+        // ⭐ Dispatch custom event for NotificationContext
+        window.dispatchEvent(new Event('userChanged'));
+        
         setIsLoggedIn(false);
         setUserRole(null);
         setShowDropdown(false);
@@ -69,8 +110,14 @@ export default function Navbar() {
       }
     } catch (error) {
       console.error(error);
+      
+      // Clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      
+      // ⭐ Dispatch event even on error
+      window.dispatchEvent(new Event('userChanged'));
+      
       setIsLoggedIn(false);
       setUserRole(null);
       navigate("/");
@@ -147,6 +194,18 @@ export default function Navbar() {
           )}
 
           <div className="nav-buttons">
+            {isLoggedIn && (
+              <button
+                className="favorites-btn"
+                onClick={() => navigate('/favorites')}
+                title="My Favorites"
+              >
+                <Heart size={18} />
+                {favoritesCount > 0 && (
+                  <span className="favorites-badge">{favoritesCount}</span>
+                )}
+              </button>
+            )}
             {isLoggedIn && <NotificationBell />}
             {isLoggedIn ? (
               <div className="profile-dropdown-container" ref={dropdownRef}>

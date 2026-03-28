@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom'; // ← ADDED useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import './login.css';
 import Navbar from "../../../components/Navbar";
 import Logo from "../../../assets/images/atithi-high-resolution-logo.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation(); // ← ADDED
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,6 +64,10 @@ export default function LoginPage() {
       if (result.success) {
         localStorage.setItem("user", JSON.stringify(result.user));
         localStorage.setItem("token", result.token || "authenticated");
+        
+        // ⭐ Dispatch userChanged event for NotificationContext
+        window.dispatchEvent(new Event('userChanged'));
+        
         window.dispatchEvent(new Event('storage'));
 
         const role = result.user.role;

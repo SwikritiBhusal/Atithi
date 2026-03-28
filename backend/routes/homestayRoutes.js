@@ -1,5 +1,6 @@
 import upload from '../Middleware/upload.js';
 import express from 'express';
+import userAuth from '../Middleware/auth.middleware.js';
 
 import {
   submitHomestay,
@@ -9,8 +10,9 @@ import {
   approveHomestay,
   rejectHomestay,
   getApprovedHomestays,
-  getMyHomestay, 
-  updateHomestay
+  getMyHomestay,
+  updateHomestay,
+  addReview
 } from '../Controller/homestayController.js';
 
 const router = express.Router();
@@ -38,11 +40,14 @@ router.get('/approved', getApprovedHomestays);
 router.put('/approve/:id', approveHomestay);
 router.put('/reject/:id', rejectHomestay);
 
+// GET: Get host's own homestay
+router.get('/my-homestay/:userId', getMyHomestay);
+
 // GET: Get homestay by ID (admin)
 router.get('/:id', getHomestayById);
 
-// GET: Get host's own homestay
-router.get('/my-homestay/:userId', getMyHomestay);
+// POST: Add or update review for homestay
+router.post('/:id/review', userAuth, addReview);
 
 // PUT: Update homestay (host edit)
 router.put('/update/:id', updateHomestay);

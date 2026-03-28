@@ -18,6 +18,13 @@ const userSchema = new mongoose.Schema({
     default: "tourist",
   },
 
+  favorites: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Homestay",
+    },
+  ],
+
   isAccountVerified: { type: Boolean, default: false },
 
     

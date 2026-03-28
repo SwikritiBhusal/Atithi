@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader, CheckCircle, XCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import { useNotifications } from '../context/NotificationContext';
 import './PaymentVerify.css';
 
 export default function PaymentVerify() {
@@ -11,7 +10,7 @@ export default function PaymentVerify() {
   const [status, setStatus] = useState('verifying'); // verifying, success, failed
   const [message, setMessage] = useState('Verifying your payment...');
   const [bookingData, setBookingData] = useState(null);
-  const { addNotification } = useNotifications();
+  
 
   useEffect(() => {
     verifyPayment();
@@ -109,11 +108,7 @@ export default function PaymentVerify() {
         setMessage('Payment successful! Your booking has been created.');
         setBookingData(bookingResult.booking);
 
-        // Send tourist a notification about confirmed booking
-        addNotification({
-          title: 'Booking confirmed!',
-          message: `Your booking (${bookingResult.booking.bookingId}) is confirmed. Check your bookings page for details.`,
-        });
+       
 
         // Clear pending booking from sessionStorage
         sessionStorage.removeItem('pendingBooking');

@@ -321,6 +321,24 @@
   line-height: 1.3;
 }
 
+.card-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #5c4a3a;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.card-rating svg {
+  flex-shrink: 0;
+}
+
+.card-rating .rating-text {
+  color: #2d1810;
+}
+
 .card-location {
   display: flex;
   align-items: center;

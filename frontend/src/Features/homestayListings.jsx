@@ -22,7 +22,9 @@ export default function HomestayListings() {
       navigate('/login', { state: { from: '/homestays' } });
       return;
     }
+
     fetchHomestays();
+    fetchFavorites();
   }, [navigate]);
 
   // Fetch approved homestays
@@ -40,6 +42,20 @@ export default function HomestayListings() {
       console.error('Error fetching homestays:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/user/favorites', {
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (result.success && Array.isArray(result.favorites)) {
+        setFavorites(result.favorites.map(fav => fav._id));
+      }
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
     }
   };
 
@@ -74,10 +90,33 @@ export default function HomestayListings() {
     setFilteredHomestays(filtered);
   }, [searchTerm, selectedProvince, priceRange, homestays]);
 
-  const toggleFavorite = (id) => {
+  const toggleFavorite = async (id) => {
+    const isFavorite = favorites.includes(id);
+    const previousFavorites = [...favorites];
+
+    // Optimistic update
     setFavorites(prev =>
-      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
+      isFavorite ? prev.filter(fav => fav !== id) : [...prev, id]
     );
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/user/favorites/${id}`,
+        {
+          method: isFavorite ? 'DELETE' : 'POST',
+          credentials: 'include',
+        }
+      );
+      const result = await response.json();
+      if (result.success && Array.isArray(result.favorites)) {
+        setFavorites(result.favorites.map(fav => fav._id));
+      } else {
+        setFavorites(previousFavorites);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      setFavorites(previousFavorites);
+    }
   };
 
   const handleBookNow = (homestayId) => {
@@ -199,7 +238,15 @@ export default function HomestayListings() {
                   {/* Content Section */}
                   <div className="card-content">
                     <h3 className="card-title">{homestay.homestayName}</h3>
-                    
+
+                    <div className="card-rating">
+                      <Star size={14} fill={homestay.averageRating > 0 ? '#fbbf24' : 'none'} stroke="#fbbf24" />
+                      <span className="rating-text">
+                        {homestay.averageRating > 0 ? homestay.averageRating.toFixed(1) : 'New'}
+                        {homestay.reviewCount ? ` (${homestay.reviewCount})` : ''}
+                      </span>
+                    </div>
+
                     <div className="card-location">
                       <MapPin size={14} />
                       <span>{homestay.municipality}, {homestay.district}</span>
