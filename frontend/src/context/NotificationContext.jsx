@@ -1,176 +1,149 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import axios from "axios";
+
+axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+axios.defaults.headers.common['Pragma'] = 'no-cache';
+axios.defaults.headers.common['Expires'] = '0';
 
 const NotificationContext = createContext(null);
 
-const STORAGE_KEY_BASE = 'atithi_notifications_v1';
-
-const defaultNotificationsByRole = {
-  tourist: [
-    {
-      id: 'welcome-tourist',
-      title: 'Welcome to Atithi!',
-      message: 'Notifications will appear here based on your activity.',
-      timestamp: Date.now(),
-      read: false,
-    },
-  ],
-  host: [
-    {
-      id: 'welcome-host',
-      title: 'Welcome, Host!',
-      message: 'You will receive notifications when guests book or cancel.',
-      timestamp: Date.now(),
-      read: false,
-    },
-  ],
-  admin: [
-    {
-      id: 'welcome-admin',
-      title: 'Welcome, Admin!',
-      message: 'Admin notifications appear here when users take actions.',
-      timestamp: Date.now(),
-      read: false,
-    },
-  ],
-};
-
-function getStoredUser() {
-  try {
-    const raw = localStorage.getItem('user');
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function getStorageKeyForRole(role, userId) {
-  // Admin notifications are stored globally so any admin can see them.
-  if (role === 'admin') {
-    return `${STORAGE_KEY_BASE}_admin_global`;
-  }
-
-  // For other roles, we store per user for better isolation
-  const idPart = userId || 'unknown';
-  return `${STORAGE_KEY_BASE}_${role}_${idPart}`;
-}
-
-function getStorageKeyForUser(user) {
-  if (!user || !user.role) {
-    return `${STORAGE_KEY_BASE}_guest`;
-  }
-  const idPart = user.id || user._id || user.username || 'unknown';
-  return getStorageKeyForRole(user.role, idPart);
-}
-
-const legacyDefaultIdsByRole = {
-  host: [
-    'host-booking-new',
-    'host-booking-cancelled',
-    'host-review-received',
-  ],
-  tourist: [],
-  admin: [],
-};
-
-function sanitizeLegacyNotifications(role, notifications) {
-  const legacyIds = legacyDefaultIdsByRole[role] || [];
-  if (!legacyIds.length) return notifications;
-  return notifications.filter((n) => !legacyIds.includes(n.id));
-}
-
-function getDefaultNotificationsForRole(role) {
-  return defaultNotificationsByRole[role] || defaultNotificationsByRole.tourist;
-}
-
 export function NotificationProvider({ children }) {
-  const [storageKey, setStorageKey] = useState(() => {
-    const user = getStoredUser();
-    return getStorageKeyForUser(user);
-  });
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastFetch, setLastFetch] = useState(Date.now()); // ⭐ Add timestamp
 
-  const [notifications, setNotifications] = useState(() => {
+  const fetchNotifications = async () => {
     try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const role = getStoredUser()?.role || 'tourist';
-        return sanitizeLegacyNotifications(role, parsed);
-      }
-    } catch {
-      // noop
-    }
-    const role = getStoredUser()?.role || 'tourist';
-    return getDefaultNotificationsForRole(role);
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(notifications));
-    } catch {
-      // noop
-    }
-  }, [notifications, storageKey]);
-
-  // If the user changes (login/logout/switch), update storage key + notifications
-  useEffect(() => {
-    const handleStorage = () => {
-      const user = getStoredUser();
-      const nextKey = getStorageKeyForUser(user);
-      if (nextKey === storageKey) return;
-
-      setStorageKey(nextKey);
-      try {
-        const stored = localStorage.getItem(nextKey);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          const role = user?.role || 'tourist';
-          setNotifications(sanitizeLegacyNotifications(role, parsed));
-          return;
-        }
-      } catch {
-        // noop
+      const user = localStorage.getItem('user');
+      
+      if (!user) {
+        console.log('❌ No user, clearing notifications');
+        setNotifications([]);
+        setLoading(false);
+        return;
       }
 
-      const role = user?.role || 'tourist';
-      setNotifications(getDefaultNotificationsForRole(role));
+      const userData = JSON.parse(user);
+      console.log('🔄 Fetching notifications for user:', userData.id);
+      
+      // ⭐ Add timestamp to prevent caching
+      const res = await axios.get(`/api/notifications?t=${Date.now()}`);
+
+      console.log('📡 API Response:', res.data);
+
+      if (res.data.success) {
+        const notifs = res.data.notifications || [];
+        console.log('✅ Setting', notifs.length, 'notifications');
+        
+        // ⭐ Force new array reference
+        setNotifications([...notifs]);
+        setLastFetch(Date.now()); // ⭐ Update timestamp
+        
+        // Log each notification
+        notifs.forEach(n => {
+          console.log('  📬', n.title, '- userId:', n.userId);
+        });
+      } else {
+        console.log('⚠️ No notifications returned');
+        setNotifications([]);
+      }
+
+    } catch (error) {
+      console.error("❌ Fetch error:", error);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearNotifications = () => {
+    console.log('🗑️ Clearing all notifications');
+    setNotifications([]);
+    setLastFetch(Date.now());
+  };
+
+  // Fetch on mount
+  useEffect(() => {
+    console.log('🎯 NotificationProvider mounted');
+    fetchNotifications();
+  }, []);
+
+  // ⭐ LISTEN FOR USER CHANGES
+  useEffect(() => {
+    const checkUser = () => {
+      const user = localStorage.getItem('user');
+      if (user) {
+        console.log('👤 User detected, fetching notifications');
+        fetchNotifications();
+      } else {
+        console.log('❌ No user detected, clearing notifications');
+        clearNotifications();
+      }
     };
 
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, [storageKey]);
+    // Listen for storage changes
+    window.addEventListener('storage', checkUser);
+    
+    // ⭐ Also listen for custom event (for same-tab logout)
+    window.addEventListener('userChanged', checkUser);
 
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
-  );
-
-  const markAsRead = useCallback((id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    return () => {
+      window.removeEventListener('storage', checkUser);
+      window.removeEventListener('userChanged', checkUser);
+    };
   }, []);
 
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+  const unreadCount = useMemo(() => {
+    const count = notifications.filter((n) => !n.read).length;
+    console.log('📊 Unread count:', count);
+    return count;
+  }, [notifications]);
 
-  const addNotification = useCallback((notification) => {
-    setNotifications((prev) => [{
-      ...notification,
-      id: notification.id || `${Date.now()}`,
-      timestamp: notification.timestamp || Date.now(),
-      read: false,
-    },
-    ...prev]);
-  }, []);
+  const markAsRead = async (id) => {
+    try {
+      console.log('✅ Marking as read:', id);
+      await axios.put(`/api/notifications/read/${id}`);
+      
+      setNotifications((prev) => {
+        const updated = prev.map((n) => 
+          n._id === id ? { ...n, read: true } : n
+        );
+        console.log('📝 Updated notifications after mark read');
+        return [...updated]; // ⭐ New array reference
+      });
+
+    } catch (error) {
+      console.error("❌ Mark as read error:", error);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      console.log('✅ Marking all as read');
+      await axios.put("/api/notifications/read-all");
+      
+      setNotifications((prev) => {
+        const updated = prev.map((n) => ({ ...n, read: true }));
+        console.log('📝 Updated all notifications to read');
+        return [...updated]; // ⭐ New array reference
+      });
+
+    } catch (error) {
+      console.error("❌ Mark all read error:", error);
+    }
+  };
 
   const value = {
     notifications,
     unreadCount,
+    loading,
+    lastFetch, // ⭐ Include timestamp
     markAsRead,
     markAllRead,
-    addNotification,
+    fetchNotifications,
+    clearNotifications
   };
 
   return (
@@ -183,30 +156,7 @@ export function NotificationProvider({ children }) {
 export function useNotifications() {
   const ctx = useContext(NotificationContext);
   if (!ctx) {
-    throw new Error('useNotifications must be used within NotificationProvider');
+    throw new Error("useNotifications must be used within NotificationProvider");
   }
   return ctx;
-}
-
-export function addNotificationForRole(role, notification, options = {}) {
-  try {
-    const key = getStorageKeyForRole(role, options.userId);
-    const stored = localStorage.getItem(key);
-    const existing = stored ? JSON.parse(stored) : getDefaultNotificationsForRole(role);
-    const next = [
-      {
-        ...notification,
-        id: notification.id || `${Date.now()}`,
-        timestamp: notification.timestamp || Date.now(),
-        read: false,
-      },
-      ...existing,
-    ];
-    localStorage.setItem(key, JSON.stringify(next));
-
-    // Notify other tabs and the current tab if needed
-    window.dispatchEvent(new Event('storage'));
-  } catch {
-    // ignore failures (e.g., private mode localStorage restrictions)
-  }
 }

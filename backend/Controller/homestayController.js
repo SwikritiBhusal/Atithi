@@ -1,6 +1,7 @@
 import Homestay from '../models/homestayModel.js';
-// import userModel from '../models/usermodel.js';
+import userModel from '../models/usermodel.js';
 import transporter from '../Config/nodeMailer.js';
+import Notification from '../models/notificationsModel.js';
 
 // Submit homestay for verification
 export const submitHomestay = async (req, res) => {
@@ -78,7 +79,7 @@ export const submitHomestay = async (req, res) => {
       email,
       phone,
       citizenshipNo,
-      ownerPhoto, // ← NEW
+      ownerPhoto, 
       homestayName,
       description,
       province,
@@ -91,12 +92,12 @@ export const submitHomestay = async (req, res) => {
       checkIn,
       checkOut,
       facilities: facilitiesArray,
-      specialFeatures: specialFeaturesArray, // ← NEW
-      smokingAllowed: smokingAllowed === 'true', // ← NEW
-      petsAllowed: petsAllowed === 'true',       // ← NEW
-      childrenAllowed: childrenAllowed === 'true', // ← NEW
-      additionalRules,                            // ← NEW
-      cancellationPolicy,                         // ← NEW
+      specialFeatures: specialFeaturesArray, 
+      smokingAllowed: smokingAllowed === 'true', 
+      petsAllowed: petsAllowed === 'true',       
+      childrenAllowed: childrenAllowed === 'true', 
+      additionalRules,                            
+      cancellationPolicy,                        
       citizenshipFiles,
       tourismRegistration,
       homestayPhotos,
@@ -105,6 +106,24 @@ export const submitHomestay = async (req, res) => {
     });
 
     await homestay.save();
+    try {
+      const admins = await userModel.find({ role: 'admin' });
+      
+      for (const admin of admins) {
+        await Notification.create({
+          userId: admin._id,
+          role: 'admin',
+          title: '🏠 New Homestay Submitted',
+          message: `${ownerName} submitted "${homestayName}" in ${district} for approval`
+        });
+      }
+      
+      console.log(` Notified ${admins.length} admin(s) about new homestay`);
+    } catch (notifError) {
+      console.error('Admin notification error:', notifError);
+      // Don't fail homestay creation if notification fails
+    }
+
 
     return res.json({
       success: true,
@@ -139,6 +158,80 @@ export const getHomestayById = async (req, res) => {
     return res.json({ success: true, homestay });
   } catch (error) {
     return res.json({ success: false, message: error.message });
+  }
+};
+
+// Add or update a user review for a homestay
+export const addReview = async (req, res) => {
+  try {
+    const homestayId = req.params.id;
+    const userId = req.user?.id;
+    const { rating, comment } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' });
+    }
+
+    const homestay = await Homestay.findById(homestayId);
+    if (!homestay) {
+      return res.status(404).json({ success: false, message: 'Homestay not found' });
+    }
+
+    const user = await userModel.findById(userId).select('username');
+    const reviewerName = user?.username || 'Guest';
+
+    const existingIndex = homestay.reviews.findIndex(
+      (r) => r.user.toString() === userId.toString()
+    );
+
+    if (existingIndex !== -1) {
+      homestay.reviews[existingIndex].rating = rating;
+      homestay.reviews[existingIndex].comment = comment || homestay.reviews[existingIndex].comment;
+      homestay.reviews[existingIndex].createdAt = new Date();
+    } else {
+      homestay.reviews.push({
+        user: userId,
+        name: reviewerName,
+        rating,
+        comment
+      });
+    }
+
+    homestay.reviewCount = homestay.reviews.length;
+    homestay.averageRating =
+      homestay.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+      (homestay.reviewCount || 1);
+
+    await homestay.save();
+
+    // Notify host about new review
+   try {
+      // Getting the host user ID from homestay
+      const hostUserId = homestay.hostUserId;
+      
+      if (hostUserId) {
+        await Notification.create({
+          userId: hostUserId,
+          role: 'host',
+          title: '⭐ New Review Received',
+          message: `${reviewerName} gave ${rating} stars to "${homestay.homestayName}"`
+        });
+        
+        console.log('Host notified about new review');
+      }
+    } catch (notifError) {
+      console.error('Review notification error:', notifError);
+      // Don't fail review creation if notification fails
+    }
+
+    return res.json({ success: true, homestay });
+  } catch (error) {
+    console.error('Add review error:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
