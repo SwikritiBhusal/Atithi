@@ -100,24 +100,24 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
   guestPhone: {
-    type: String  // ✅ YOUR ORIGINAL
+    type: String  
   },
 
-  // Homestay Information (snapshot)
+  // Homestay Information 
   homestayName: {
     type: String,
     required: true
   },
   homestayLocation: {
-    type: String  // ✅ YOUR ORIGINAL
+    type: String  
   },
 
   // Additional Notes
   specialRequests: {
-    type: String  // ✅ YOUR ORIGINAL
+    type: String  
   },
   cancellationReason: {
-    type: String  // ✅ YOUR ORIGINAL
+    type: String  
   },
 
   // Timestamps

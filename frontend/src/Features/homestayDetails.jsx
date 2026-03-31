@@ -82,6 +82,12 @@ export default function HomestayDetails() {
     'Cultural Experience': <Shield size={18} />
   };
 
+  // ✅ CHANGE 1: getCrispImageUrl function added here
+  const getCrispImageUrl = (url) => {
+    if (!url || !url.includes('cloudinary.com')) return url;
+    return url.replace('/upload/', '/upload/q_90,f_jpg,w_1600/');
+  };
+
   const nextImage = () => {
     if (homestay?.homestayPhotos?.length > 1) {
       setCurrentImageIndex((prev) => 
@@ -234,6 +240,10 @@ export default function HomestayDetails() {
     <>
       <Navbar />
       <div className="details-page">
+        {/* Floating background elements - flags, leaves, mountains */}
+        <div className="bg-flags">
+          {[...Array(15)].map((_, i) => <div key={i} className="bg-flag" />)}
+        </div>
         {/* Back Button */}
         <div className="details-container">
           <button className="back-btn" onClick={() => navigate('/homestayListings')}>
@@ -261,8 +271,9 @@ export default function HomestayDetails() {
             {homestay.homestayPhotos && homestay.homestayPhotos.length > 0 ? (
               <>
                 <div className="main-photo">
+                  {/* ✅ CHANGE 2: getCrispImageUrl used on main photo */}
                   <img 
-                    src={homestay.homestayPhotos[currentImageIndex].url} 
+                    src={getCrispImageUrl(homestay.homestayPhotos[currentImageIndex].url)}
                     alt={`${homestay.homestayName} - View ${currentImageIndex + 1}`}
                   />
                   {homestay.homestayPhotos.length > 1 && (
@@ -289,7 +300,8 @@ export default function HomestayDetails() {
                         className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                         onClick={() => setCurrentImageIndex(index)}
                       >
-                        <img src={photo.url} alt={`Thumbnail ${index + 1}`} />
+                        {/* ✅ CHANGE 3: getCrispImageUrl used on thumbnails */}
+                        <img src={getCrispImageUrl(photo.url)} alt={`Thumbnail ${index + 1}`} />
                       </div>
                     ))}
                   </div>
@@ -405,8 +417,7 @@ export default function HomestayDetails() {
                 </div>
               </section>
 
-             
-{/* House Rules Section - IMPROVED VERSION */}
+{/* House Rules Section */}
 <section className="details-section house-rules-section">
   <h2>📋 House Rules</h2>
   <div className="house-rules-grid">
@@ -450,8 +461,7 @@ export default function HomestayDetails() {
   )}
 </section>
 
-             
-{/* Cancellation Policy Section - IMPROVED VERSION */}
+{/* Cancellation Policy Section */}
 <section className="details-section cancellation-section">
   <h2>🔄 Cancellation Policy</h2>
   <div className="policy-card">
@@ -579,7 +589,7 @@ export default function HomestayDetails() {
                 </div>
               </section>
 
-              {/* Availability Section - Shows after clicking Check Availability */}
+              {/* Availability Section */}
               {showAvailability && (
                 <section className="details-section availability-section" id="availability-section">
                   <h2>Check Availability & Book</h2>

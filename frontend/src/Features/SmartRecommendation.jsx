@@ -86,7 +86,8 @@ export default function SmartRecommendation({ onClose }) {
         navigate('/recommendations/results', {
           state: {
             recommendations: result.recommendations,
-            preferences: preferences
+            preferences: preferences,
+             historyId: result.historyId 
           }
         });
       }

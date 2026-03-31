@@ -25,6 +25,8 @@ import UserBookings from './Features/userBooking';
 // Protected Routes
 import { AdminProtectedRoute, HostProtectedRoute } from './components/ProtectedRoute';
 import RecommendationResults from './Features/RecommendationResult';
+import MyRecommendations  from './Features/myRecommendation';
+
 import Favorites from './Features/Favorites';
 
 function App() {
@@ -46,6 +48,7 @@ function App() {
        <Route path="/payment/verify" element={<PaymentVerify />} />
        <Route path="/payment/success" element={<PaymentSuccess />} />
        <Route path="/recommendations/results" element={<RecommendationResults />} />
+       <Route path="/my-recommendations" element={<MyRecommendations />} />
        <Route path="/favorites" element={<Favorites />} />
 
       {/* <Route path="/overview" element={<AdminDashboard />} /> 

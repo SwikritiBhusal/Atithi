@@ -100,7 +100,7 @@ export default function Navbar() {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        // ⭐ Dispatch custom event for NotificationContext
+        //  Dispatch custom event for NotificationContext
         window.dispatchEvent(new Event('userChanged'));
         
         setIsLoggedIn(false);
@@ -115,7 +115,7 @@ export default function Navbar() {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // ⭐ Dispatch event even on error
+      // Dispatch event even on error
       window.dispatchEvent(new Event('userChanged'));
       
       setIsLoggedIn(false);
@@ -148,6 +148,12 @@ export default function Navbar() {
     setShowDropdown(false);
     navigate('/my-bookings');
   };
+  const handleMyRecommendationsClick = () => {
+    setShowDropdown(false);
+    navigate('/my-recommendations');
+  };
+
+
 
   // Don't show navbar on admin/host dashboard pages
   if (isAdminPage || isHostPage) {
@@ -246,6 +252,13 @@ export default function Navbar() {
                         <span>My Bookings</span>
                       </button>
                     )}
+                    {userRole === 'tourist' && (
+                      <button className="dropdown-item" onClick={handleMyRecommendationsClick}>
+                        <Calendar size={16} />
+                        <span>My Recommendations</span>
+                      </button>
+                    )}
+
 
                     {/* Dashboard - Only for Admin/Host */}
                     {(userRole === 'admin' || userRole === 'host') && (
