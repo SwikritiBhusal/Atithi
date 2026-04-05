@@ -4,12 +4,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import './login.css';
 import Navbar from "../../../components/Navbar";
 import Logo from "../../../assets/images/atithi-high-resolution-logo.png";
+import { Toast, useToast } from '../../../components/toast'; 
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const { toasts, toast, removeToast } = useToast(); // ✅
 
   const [formData, setFormData] = useState({
     email: "",
@@ -17,23 +19,15 @@ export default function LoginPage() {
     rememberMe: false
   });
 
-  // Check if already logged in - redirect based on role
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      if (user.role === 'admin') {
-        navigate('/Admin/overview');
-      } else if (user.role === 'host') {
-        // Check if has approved homestay
-        if (user.hasApprovedHomestay) {
-          navigate('/Hosts/hostDashboard');
-        } else {
-          navigate('/');
-        }
-      } else {
-        navigate('/');
-      }
+      if (user.role === 'admin') navigate('/Admin/overview');
+      else if (user.role === 'host') {
+        if (user.hasApprovedHomestay) navigate('/Hosts/hostDashboard');
+        else navigate('/');
+      } else navigate('/');
     }
   }, [navigate]);
 
@@ -47,6 +41,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ Basic validation
+    if (!formData.email || !formData.password) {
+      toast.warning('Missing Fields', 'Please enter your email and password');
+      return;
+    }
 
     try {
       const response = await fetch("http://localhost:5000/api/auth/login", {
@@ -64,56 +64,56 @@ export default function LoginPage() {
       if (result.success) {
         localStorage.setItem("user", JSON.stringify(result.user));
         localStorage.setItem("token", result.token || "authenticated");
-        
-        // ⭐ Dispatch userChanged event for NotificationContext
         window.dispatchEvent(new Event('userChanged'));
-        
         window.dispatchEvent(new Event('storage'));
 
-        const role = result.user.role;
-        const from = location.state?.from; 
+        // ✅ Success toast
+        toast.success('Login Successful', `Welcome back, ${result.user.username}!`);
 
-        // ============ UPDATED REDIRECT LOGIC ============
-        // If coming from homestay form, redirect back to form
-        if (from === '/HomestayForm' && role === 'host') {
-          navigate('/HomestayForm');
-        } else {
-          // Normal role-based navigation
-          if (role === 'admin') {
+        const role = result.user.role;
+        const from = location.state?.from;
+
+        // Redirect after short delay so toast is visible
+        setTimeout(() => {
+          if (from === '/HomestayForm' && role === 'host') {
+            navigate('/HomestayForm');
+          } else if (role === 'admin') {
             navigate('/Admin/overview');
           } else if (role === 'host') {
-            // Check if host has approved homestay
             if (result.user.hasApprovedHomestay) {
               navigate('/Hosts/hostDashboard');
             } else {
-              alert('⏳ Your homestay is pending admin approval.\n\n You will receive an email once approved.\n\n You can access the host dashboard after approval.');
-              navigate('/');
+              toast.info('Pending Approval', 'Your homestay is under review. You will be notified via email once approved.');
+              setTimeout(() => navigate('/'), 2500);
             }
           } else {
-            // Tourist
             navigate('/');
           }
-        }
+        }, 1200);
 
       } else {
         setError(result.message || "Login failed!");
-        alert(result.message || "Login failed!");
+        // ✅ Error toast
+        toast.error('Login Failed', result.message || 'Invalid email or password');
       }
     } catch (error) {
       console.error(error);
       setError("Something went wrong!");
-      alert("Something went wrong!");
+      toast.error('Something went wrong', 'Please try again later');
     }
   };
 
   const goToForgotPassword = () => {
-    setError("");         
+    setError("");
     navigate("/forgot-password");
-  }; 
+  };
 
   return (
     <>
       <Navbar />
+      {/* ✅ Toast renderer */}
+      <Toast toasts={toasts} removeToast={removeToast} />
+
       <div className="registerr-pagee-wrapperr">
         <div className="login-containerr">
           <div className="login-cardd">
@@ -181,9 +181,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <button type="submit" className="login-buttonn">
-                Log In
-              </button>
+              <button type="submit" className="login-buttonn">Log In</button>
 
               <div className="register-sectionn">
                 Don't have an account? <a href="/register">Register</a>

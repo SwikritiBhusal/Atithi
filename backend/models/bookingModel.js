@@ -63,7 +63,7 @@ const bookingSchema = new mongoose.Schema({
   },
   paymentOption: {
     type: String,
-    enum: ['advance', 'full'],  // ✅ YOUR ORIGINAL (CORRECT)
+    enum: ['advance', 'full'],  
     required: true
   },
 

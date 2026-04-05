@@ -484,3 +484,139 @@ body {
     font-size: 28px;
   }
 }
+ 
+/* ── Password strength bar ── */
+.pw-strength-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+ 
+.pw-strength-bar {
+  flex: 1;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+ 
+.pw-strength-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.35s ease, background 0.35s ease;
+}
+ 
+.pw-strength-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 44px;
+  text-align: right;
+  letter-spacing: 0.03em;
+}
+ 
+/* ── Password rules checklist ── */
+.pw-rules {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  margin-top: 8px;
+}
+ 
+.pw-rule {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+ 
+.pw-rule.pass { color: #10b981; }
+.pw-rule.fail { color: #94a3b8; }
+ 
+/* ── Field valid/invalid border states ── */
+.input-wrapper.valid input {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08) !important;
+}
+ 
+.input-wrapper.invalid input {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08) !important;
+}
+ 
+/* ── Inline check/x icons inside input ── */
+.field-check {
+  position: absolute;
+  right: 14px;
+  color: #10b981;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+ 
+.field-x {
+  position: absolute;
+  right: 14px;
+  color: #ef4444;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+ 
+/* Push right icon for password fields (has eye button) */
+.input-wrapper.valid   .toggle-password,
+.input-wrapper.invalid .toggle-password {
+  right: 36px;
+}
+ 
+/* ── Error & success messages below fields ── */
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: 5px;
+  animation: fieldMsgIn 0.2s ease;
+}
+ 
+.field-success {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #10b981;
+  font-weight: 500;
+  margin-top: 5px;
+  animation: fieldMsgIn 0.2s ease;
+}
+ 
+@keyframes fieldMsgIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+/* ── Phone digit counter in label ── */
+.field-counter {
+  margin-left: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+ 
+/* ── Password match feedback ── */
+.pw-match {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 6px;
+}
+ 
+.pw-match.match    { color: #10b981; }
+.pw-match.no-match { color: #ef4444; }
+ 

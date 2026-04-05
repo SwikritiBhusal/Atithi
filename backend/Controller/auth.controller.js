@@ -4,22 +4,36 @@ import jwt from 'jsonwebtoken';
 import Homestay from '../models/homestayModel.js';
 import transporter from '../Config/nodeMailer.js'; 
 
-//Register with otp
-export const register = async (req, res) => {
-  const { username, email, password, contactNumber , role} = req.body;
 
-  if (!username || !email || !password  || !contactNumber ) {
+export const register = async (req, res) => {
+  const { username, email, password, contactNumber, role } = req.body;
+ 
+  if (!username || !email || !password || !contactNumber) {
     return res.json({ success: false, message: 'Missing Details' });
   }
-
+ 
+  // Server-side password validation
+  if (password.length < 8) {
+    return res.json({ success: false, message: 'Password must be at least 8 characters' });
+  }
+  if (!/[A-Z]/.test(password)) {
+    return res.json({ success: false, message: 'Password must contain at least 1 uppercase letter' });
+  }
+  if (!/[0-9]/.test(password)) {
+    return res.json({ success: false, message: 'Password must contain at least 1 number' });
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    return res.json({ success: false, message: 'Password must contain at least 1 special character' });
+  }
+ 
   try {
     const existingUser = await userModel.findOne({ email });
     if (existingUser) {
       return res.json({ success: false, message: "User already exists" });
     }
-
+ 
     const hashedPassword = await bcrypt.hash(password, 10);
-
+ 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const user = new userModel({
       username,
@@ -29,27 +43,27 @@ export const register = async (req, res) => {
       verifyOtp: otp,
       verifyOtpExpireAt: Date.now() + 24 * 60 * 60 * 1000,
       isAccountVerified: false,
-       role: role || 'tourist'
+      role: role || 'tourist'
     });
-
+ 
     await user.save();
-
-    // Send OTP email
+ 
     const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: user.email,
-            subject: 'Account Verification OTP',
-            text: `Your OTP is ${otp}. Verify your account using this OTP.`
-        };
-
-        await transporter.sendMail(mailOptions);
-
-        return res.json({ success: true });
-
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
+      from: process.env.SENDER_EMAIL,
+      to: user.email,
+      subject: 'Account Verification OTP',
+      text: `Your OTP is ${otp}. Verify your account using this OTP.`
+    };
+ 
+    await transporter.sendMail(mailOptions);
+ 
+    return res.json({ success: true });
+ 
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
+ 
 
 
 // LOGIN

@@ -11,7 +11,6 @@ import ResetPassword from './Features/auth/ResetPassword';
 import ForgotPassword from './Features/auth/ForgotPassword';
 import HomestayForm from './Features/HomestayForm';
 import AdminDashboard from './Features/Admin/overview';
-// import Homestays from './Features/Admin/homestays';
 import HomestayListings from './Features/homestayListings';
 import HomestayDetails from './Features/homestayDetails';
 import BookingConfirmation from './Features/BookingConfirmation';

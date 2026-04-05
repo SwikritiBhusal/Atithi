@@ -12,7 +12,7 @@ import {
   getApprovedHomestays,
   getMyHomestay,
   updateHomestay,
-  addReview
+  addReview,getUniqueFacilities,regenerateAllEmbeddings
 } from '../Controller/homestayController.js';
 
 const router = express.Router();
@@ -43,6 +43,8 @@ router.put('/reject/:id', rejectHomestay);
 // GET: Get host's own homestay
 router.get('/my-homestay/:userId', getMyHomestay);
 
+router.get('/unique-facilities', getUniqueFacilities);
+
 // GET: Get homestay by ID (admin)
 router.get('/:id', getHomestayById);
 
@@ -51,6 +53,8 @@ router.post('/:id/review', userAuth, addReview);
 
 // PUT: Update homestay (host edit)
 router.put('/update/:id', updateHomestay);
+
+router.post('/regenerate-embeddings', regenerateAllEmbeddings);
 
 
 export default router;

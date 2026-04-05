@@ -35,7 +35,6 @@ app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/homestay', homestayRouter);
 app.use('/api/payment', paymentRoutes);
-// Use booking routes (add this with your other routes)
 app.use('/api/booking', bookingRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use("/api/notifications", notificationRoutes);

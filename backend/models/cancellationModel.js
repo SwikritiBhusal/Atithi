@@ -37,7 +37,7 @@ const cancellationSchema = new mongoose.Schema(
     },
     refundPercentage: {
       type: Number,
-      required: true, // 80 or 100
+      required: true, 
     },
     // Status tracking
     refundStatus: {
@@ -60,10 +60,11 @@ const cancellationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for faster queries
-cancellationSchema.index({ bookingId: 1 });
+
+// cancellationSchema.index({ bookingId: 1 });
 cancellationSchema.index({ cancelledBy: 1 });
 cancellationSchema.index({ refundStatus: 1 });
 cancellationSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Cancellation", cancellationSchema);
+

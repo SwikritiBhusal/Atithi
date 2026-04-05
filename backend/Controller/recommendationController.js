@@ -1,82 +1,78 @@
+
 import Homestay from '../models/homestayModel.js';
 import RecommendationHistory from '../models/recommendationHistoryModel.js';
-import natural from 'natural'; 
-import { cosineSimilarity, generateEmbedding } from '../utils/aiHelper.js';
+import HomestayEmbedding from '../models/homestayEmbeddingModel.js';
+import { generateEmbedding, cosineSimilarity } from '../utils/aiHelper.js';
 
-// AI-POWERED RECOMMENDATION ENGINE
 export const getSmartRecommendations = async (req, res) => {
   try {
     const { travelPurpose, budget, mustHaves, duration, groupSize } = req.body;
     const userId = req.user?.id;
 
-    // Fetch all approved homestays
-    const homestays = await Homestay.find({ status: 'approved' });
+    // Fetch pre-computed embeddings with homestay data
+    const homestayEmbeddings = await HomestayEmbedding.find()
+      .populate('homestayId')
+      .lean();
 
-    if (homestays.length === 0) {
+    // Only approved homestays that have embeddings
+    const validEmbeddings = homestayEmbeddings.filter(
+      e => e.homestayId && e.homestayId.status === 'approved'
+    );
+
+    if (validEmbeddings.length === 0) {
       return res.json({
         success: false,
         message: 'No homestays available at the moment'
       });
     }
 
-    // Build user preference text
+    // Build preference text for embedding
     const userPreferenceText = buildUserPreferenceText({
-      travelPurpose,
-      budget,
-      mustHaves,
-      duration,
-      groupSize
+      travelPurpose, budget, mustHaves, duration, groupSize
     });
 
-    console.log('🎯 User Preference Profile:', userPreferenceText);
+    console.log('User Preference Profile:', userPreferenceText);
 
-    // Generate embedding for user preferences
+    // ONE embedding call for user query (not one per homestay)
     const userEmbedding = await generateEmbedding(userPreferenceText);
 
-    // Score all homestays using AI similarity
-    const scoredHomestays = await Promise.all(
-      homestays.map(async (homestay) => {
-        const homestayText = buildHomestayText(homestay);
-        const homestayEmbedding = await generateEmbedding(homestayText);
+    // Score using stored embeddings — pure math, no extra API calls
+    const scoredHomestays = validEmbeddings.map(embeddingDoc => {
+      const homestay = embeddingDoc.homestayId;
+      const semanticScore = cosineSimilarity(userEmbedding, embeddingDoc.embedding);
+      const { score: filterScore } = applyFilters(homestay, { budget, groupSize });
 
-        let matchScore = cosineSimilarity(userEmbedding, homestayEmbedding) * 100;
+      const matchScore = Math.min(
+        Math.round((semanticScore * 100 * 0.7) + (filterScore * 0.3)),
+        100
+      );
 
-        const { score: filterScore, penalties } = applyFilters(homestay, {
-          budget,
-          groupSize,
-          duration
-        });
+      return {
+        homestay,
+        matchScore,
+        semanticScore: Math.round(semanticScore * 100),
+        filterScore: Math.round(filterScore)
+      };
+    });
 
-        matchScore = (matchScore * 0.7) + (filterScore * 0.3);
-
-        const reasons = await generateMatchReasons(
-          homestay,
-          { travelPurpose, budget, mustHaves, groupSize },
-          matchScore
-        );
-
-        return {
-          homestay,
-          matchScore: Math.min(Math.round(matchScore), 100),
-          reasons,
-          semanticScore: Math.round(cosineSimilarity(userEmbedding, homestayEmbedding) * 100),
-          filterScore: Math.round(filterScore)
-        };
-      })
-    );
-
-    // Sort by match score and take top 2
+    // Sort and take top 2
     scoredHomestays.sort((a, b) => b.matchScore - a.matchScore);
     let topRecommendations = scoredHomestays.slice(0, 2);
 
-    // Ensure minimum quality threshold
+    // Minimum score threshold
     topRecommendations = topRecommendations.map((rec, idx) => {
       if (idx === 0) rec.matchScore = Math.max(rec.matchScore, 75);
       if (idx === 1) rec.matchScore = Math.max(rec.matchScore, 65);
       return rec;
     });
 
-    // ✅ FIX 1: Safely parse duration — schema expects Number, but input may be "1-2"
+    // Add human-readable reasons
+    topRecommendations = topRecommendations.map(rec => ({
+      ...rec,
+      reasons: generateMatchReasons(rec.homestay, { travelPurpose, budget, mustHaves, groupSize })
+    }));
+
+    // Parse duration safely
     const parsedDuration = (() => {
       if (!duration) return 0;
       if (typeof duration === 'number') return duration;
@@ -91,10 +87,9 @@ export const getSmartRecommendations = async (req, res) => {
         savedHistory = await RecommendationHistory.create({
           userId,
           preferences: {
-            travelPurpose,
-            budget,
+            travelPurpose, budget,
             mustHaves: mustHaves || [],
-            duration: parsedDuration,   // ✅ Always a Number now
+            duration: parsedDuration,
             groupSize: groupSize || 1
           },
           recommendations: topRecommendations.map(rec => ({
@@ -104,19 +99,12 @@ export const getSmartRecommendations = async (req, res) => {
           })),
           aiMetadata: {
             userPreferenceText,
-            algorithmVersion: '2.0-AI-Powered'
+            algorithmVersion: '3.0-SentenceTransformers'
           }
         });
-
-        console.log('✅ AI Recommendation saved:', savedHistory._id);
+        console.log('Recommendation saved:', savedHistory._id);
       } catch (historyError) {
-        // ✅ FIX 2: Log full error details so you can debug schema mismatches faster
         console.error('Failed to save history:', historyError.message);
-        if (historyError.errors) {
-          Object.entries(historyError.errors).forEach(([field, err]) => {
-            console.error(`  Field "${field}": ${err.message} (got: ${JSON.stringify(err.value)})`);
-          });
-        }
       }
     }
 
@@ -126,11 +114,12 @@ export const getSmartRecommendations = async (req, res) => {
       total: topRecommendations.length,
       historyId: savedHistory?._id,
       message: `Found ${topRecommendations.length} AI-matched homestays for you`,
-      aiPowered: true
+      aiPowered: true,
+      modelVersion: 'sentence-transformers/all-MiniLM-L6-v2'
     });
 
   } catch (error) {
-    console.error('❌ AI Recommendation Error:', error);
+    console.error('Recommendation Error:', error);
     return res.json({
       success: false,
       message: 'Failed to generate recommendations',
@@ -139,172 +128,102 @@ export const getSmartRecommendations = async (req, res) => {
   }
 };
 
-// ⭐ BUILD USER PREFERENCE TEXT
-function buildUserPreferenceText({ travelPurpose, budget, mustHaves, duration, groupSize }) {
+// Builds user preference text for embedding
+function buildUserPreferenceText({ travelPurpose, budget, mustHaves, groupSize }) {
   const purposeDescriptions = {
     adventure: 'adventure trekking hiking mountain outdoor activities climbing expedition trails wilderness nature exploration',
     wellness: 'wellness relaxation peaceful quiet yoga meditation spa tranquil calm serene rejuvenation retreat healing',
-    culture: 'cultural heritage traditional authentic local customs festivals temples history art traditional-food community',
-    family: 'family-friendly children kids spacious safe playground activities group accommodation large-rooms',
-    photography: 'scenic views photography landscape panoramic vistas mountain-view sunrise sunset picturesque photogenic'
+    culture: 'cultural heritage traditional authentic local customs festivals temples history art community',
+    family: 'family-friendly children kids spacious safe playground activities group accommodation large rooms',
+    photography: 'scenic views photography landscape panoramic vistas mountain view sunrise sunset picturesque photogenic'
   };
 
   const budgetDescriptions = {
-    budget: 'affordable economical budget-friendly value cheap low-cost',
+    budget: 'affordable economical budget-friendly value cheap low-cost inexpensive',
     moderate: 'moderate comfortable standard value-for-money mid-range',
     premium: 'luxury premium upscale high-end exclusive deluxe sophisticated'
   };
 
-  let text = purposeDescriptions[travelPurpose] || '';
+  let text = purposeDescriptions[travelPurpose] || travelPurpose || '';
   text += ' ' + (budgetDescriptions[budget] || '');
 
+  // mustHaves are real facility strings from homestay DB
+  // e.g. ["WiFi", "Hot Water", "Mountain View"] — add directly
   if (mustHaves && mustHaves.length > 0) {
-    const mustHaveDescriptions = {
-      mountain_view: 'mountain panoramic-view himalayan-view scenic-vista peaks',
-      trekking_trails: 'trekking-access hiking-trails mountain-trails outdoor-activities',
-      traditional_food: 'traditional-cuisine local-food authentic-meals nepali-food',
-      wifi: 'internet wifi connectivity workspace remote-work',
-      family_friendly: 'family children kids child-safe playground',
-      cultural_activities: 'cultural-activities traditional-experiences local-culture workshops',
-      peaceful: 'peaceful quiet serene tranquil calm secluded',
-      hot_water: 'hot-water shower facilities comfort amenities'
-    };
-
-    mustHaves.forEach(item => {
-      text += ' ' + (mustHaveDescriptions[item] || '');
-    });
+    text += ' ' + mustHaves.join(' ');
   }
 
-  if (groupSize > 1) {
-    text += ' group accommodation spacious multiple-rooms';
-  }
+  if (groupSize > 1) text += ' group accommodation spacious multiple rooms';
 
   return text.toLowerCase().trim();
 }
 
-// ⭐ BUILD HOMESTAY TEXT
-function buildHomestayText(homestay) {
-  const name = homestay.homestayName || '';
-  const description = homestay.description || '';
-  const location = homestay.location || '';
-  const district = homestay.district || '';
-  const province = homestay.province || '';
-
-  let text = `${name} ${description} ${location} ${district} ${province}`;
-
-  if (homestay.amenities && Array.isArray(homestay.amenities)) {
-    text += ' ' + homestay.amenities.join(' ');
-  }
-
-  return text.toLowerCase().trim();
-}
-
-// ⭐ APPLY HARD FILTERS
 function applyFilters(homestay, { budget, groupSize }) {
   let score = 0;
-  const penalties = [];
-
   const price = homestay.price || 0;
 
-  if (budget === 'budget' && price < 2000) {
-    score += 30;
-  } else if (budget === 'moderate' && price >= 2000 && price <= 4000) {
-    score += 30;
-  } else if (budget === 'premium' && price > 4000) {
-    score += 30;
-  } else if (budget === 'budget' && price < 2500) {
-    score += 25;
-  } else if (budget === 'moderate' && price >= 1500 && price < 2000) {
-    score += 25;
-  } else {
-    score += 15;
-    penalties.push('Outside preferred budget range');
-  }
+  if (budget === 'budget' && price < 2000) score += 30;
+  else if (budget === 'moderate' && price >= 2000 && price <= 4000) score += 30;
+  else if (budget === 'premium' && price > 4000) score += 30;
+  else if (budget === 'budget' && price < 2500) score += 25;
+  else if (budget === 'moderate' && price >= 1500 && price < 2000) score += 25;
+  else score += 15;
 
-  const capacity = homestay.rooms || 1;
-  if (groupSize <= capacity * 2) {
-    score += 20;
-  } else {
-    score += 10;
-    penalties.push('May be tight for group size');
-  }
+  score += (groupSize <= (homestay.rooms || 1) * 2) ? 20 : 10;
 
   const rating = homestay.averageRating || 0;
   if (rating >= 4.5) score += 10;
   else if (rating >= 4.0) score += 7;
   else if (rating >= 3.5) score += 5;
 
-  return { score, penalties };
+  return { score };
 }
 
-// ⭐ GENERATE AI-POWERED MATCH REASONS
-async function generateMatchReasons(homestay, preferences, matchScore) {
-  const reasons = [];
-  const { travelPurpose, budget, mustHaves, groupSize } = preferences;
-
+function generateMatchReasons(homestay, preferences) {
+  const { travelPurpose } = preferences;
   const purposeReasons = {
-    adventure: `Perfect for adventure enthusiasts with ${homestay.district || 'excellent'} location`,
-    wellness: `Tranquil atmosphere ideal for wellness and relaxation`,
-    culture: `Authentic cultural experience with traditional hospitality`,
-    family: `Family-friendly environment with spacious accommodations`,
-    photography: `Stunning scenic views perfect for photography`
+    adventure: `Perfect for adventure enthusiasts in ${homestay.district || 'Nepal'}`,
+    wellness: 'Tranquil atmosphere ideal for wellness and relaxation',
+    culture: 'Authentic cultural experience with traditional hospitality',
+    family: 'Family-friendly environment with spacious accommodations',
+    photography: 'Stunning scenic views perfect for photography'
   };
-  reasons.push(purposeReasons[travelPurpose] || 'Great match for your travel style');
 
   const price = homestay.price || 0;
-  reasons.push(`Excellent value at NPR ${price.toLocaleString()} per night`);
-
   const rating = homestay.averageRating || 0;
-  if (rating >= 4.0) {
-    reasons.push(`Highly rated at ${rating.toFixed(1)}⭐ by previous guests`);
-  } else {
-    reasons.push(`Welcoming hosts provide authentic local experience`);
-  }
 
-  reasons.push(`Prime location in ${homestay.district || 'Nepal'}`);
-
-  return reasons.slice(0, 4);
+  return [
+    purposeReasons[travelPurpose] || 'Great match for your travel style',
+    `Excellent value at NPR ${price.toLocaleString()} per night`,
+    rating >= 4.0
+      ? `Highly rated at ${rating.toFixed(1)} stars by previous guests`
+      : 'Welcoming hosts provide authentic local experience',
+    `Located in ${homestay.district || 'Nepal'}`
+  ];
 }
 
-// ✅ GET RECOMMENDATION HISTORY — fixed populate path
 export const getRecommendationHistory = async (req, res) => {
   try {
     const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
 
     const history = await RecommendationHistory.find({ userId })
       .populate({
         path: 'recommendations.homestayId',
-        model: 'Homestay',           // ✅ Explicitly name the model
-        select: 'homestayName location district province price averageRating images'
+        model: 'Homestay',
+        select: 'homestayName location district province price averageRating homestayPhotos'
       })
       .sort({ createdAt: -1 })
       .limit(20);
 
-    // ✅ FIX 3: Filter out entries where homestayId failed to populate (deleted homestays)
     const cleanHistory = history.map(entry => ({
       ...entry.toObject(),
       recommendations: entry.recommendations.filter(r => r.homestayId != null)
     }));
 
-    return res.json({
-      success: true,
-      history: cleanHistory
-    });
-
+    return res.json({ success: true, history: cleanHistory });
   } catch (error) {
-    console.error('Get history error:', error);
-    return res.json({
-      success: false,
-      message: 'Failed to fetch history',
-      error: error.message
-    });
+    return res.json({ success: false, message: error.message });
   }
 };
 
@@ -312,25 +231,12 @@ export const getRecommendationById = async (req, res) => {
   try {
     const { historyId } = req.params;
     const userId = req.user?.id;
-
-    const recommendation = await RecommendationHistory.findOne({
-      _id: historyId,
-      userId
-    }).populate({
-      path: 'recommendations.homestayId',
-      model: 'Homestay',
-      select: 'homestayName location district province price averageRating images'
-    });
-
-    if (!recommendation) {
-      return res.json({ success: false, message: 'Recommendation not found' });
-    }
-
+    const recommendation = await RecommendationHistory.findOne({ _id: historyId, userId })
+      .populate({ path: 'recommendations.homestayId', model: 'Homestay' });
+    if (!recommendation) return res.json({ success: false, message: 'Recommendation not found' });
     return res.json({ success: true, recommendation });
-
   } catch (error) {
-    console.error('Get recommendation error:', error);
-    return res.json({ success: false, message: 'Failed to fetch recommendation', error: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
@@ -338,25 +244,17 @@ export const toggleSaveRecommendation = async (req, res) => {
   try {
     const { historyId } = req.params;
     const userId = req.user?.id;
-
     const recommendation = await RecommendationHistory.findOne({ _id: historyId, userId });
-
-    if (!recommendation) {
-      return res.json({ success: false, message: 'Recommendation not found' });
-    }
-
+    if (!recommendation) return res.json({ success: false, message: 'Recommendation not found' });
     recommendation.isSaved = !recommendation.isSaved;
     await recommendation.save();
-
     return res.json({
       success: true,
       message: recommendation.isSaved ? 'Saved to collection' : 'Removed from collection',
       isSaved: recommendation.isSaved
     });
-
   } catch (error) {
-    console.error('Toggle save error:', error);
-    return res.json({ success: false, message: 'Failed to save', error: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
@@ -364,17 +262,10 @@ export const deleteRecommendation = async (req, res) => {
   try {
     const { historyId } = req.params;
     const userId = req.user?.id;
-
     const result = await RecommendationHistory.findOneAndDelete({ _id: historyId, userId });
-
-    if (!result) {
-      return res.json({ success: false, message: 'Recommendation not found' });
-    }
-
+    if (!result) return res.json({ success: false, message: 'Recommendation not found' });
     return res.json({ success: true, message: 'Recommendation deleted' });
-
   } catch (error) {
-    console.error('Delete error:', error);
-    return res.json({ success: false, message: 'Failed to delete', error: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };

@@ -2,8 +2,30 @@ import Homestay from '../models/homestayModel.js';
 import userModel from '../models/usermodel.js';
 import transporter from '../Config/nodeMailer.js';
 import Notification from '../models/notificationsModel.js';
+import HomestayEmbedding from '../models/homestayEmbeddingModel.js'; // ✅ ADDED
+import { generateEmbedding } from '../utils/aiHelper.js';             // ✅ ADDED
 
-// Submit homestay for verification
+// ✅ ADDED — builds text from homestay for AI embedding
+function buildHomestayTextForEmbedding(homestay) {
+  const parts = [
+    homestay.homestayName,
+    homestay.description,
+    homestay.district,
+    homestay.municipality,
+    homestay.province,
+    Array.isArray(homestay.facilities) ? homestay.facilities.join(' ') : '',
+    Array.isArray(homestay.specialFeatures) ? homestay.specialFeatures.join(' ') : '',
+    homestay.price < 2000 ? 'budget affordable cheap economical' :
+      homestay.price <= 4000 ? 'moderate comfortable mid-range' :
+        'premium luxury upscale high-end',
+    homestay.smokingAllowed ? '' : 'non-smoking clean',
+    homestay.petsAllowed ? 'pet friendly animals welcome' : '',
+    homestay.childrenAllowed ? 'family friendly children welcome kids' : '',
+  ];
+  return parts.filter(Boolean).join(' ').toLowerCase().trim();
+}
+
+// Submit homestay for verification — UNCHANGED
 export const submitHomestay = async (req, res) => {
   try {
     const {
@@ -121,9 +143,7 @@ export const submitHomestay = async (req, res) => {
       console.log(` Notified ${admins.length} admin(s) about new homestay`);
     } catch (notifError) {
       console.error('Admin notification error:', notifError);
-      // Don't fail homestay creation if notification fails
     }
-
 
     return res.json({
       success: true,
@@ -140,7 +160,7 @@ export const submitHomestay = async (req, res) => {
   }
 };
 
-// Get all homestays
+// Get all homestays — UNCHANGED
 export const getAllHomestays = async (req, res) => {
   try {
     const homestays = await Homestay.find().sort({ submittedAt: -1 });
@@ -150,7 +170,7 @@ export const getAllHomestays = async (req, res) => {
   }
 };
 
-// Get homestay by ID
+// Get homestay by ID — UNCHANGED
 export const getHomestayById = async (req, res) => {
   try {
     const homestay = await Homestay.findById(req.params.id);
@@ -161,7 +181,7 @@ export const getHomestayById = async (req, res) => {
   }
 };
 
-// Add or update a user review for a homestay
+// Add or update a user review — UNCHANGED
 export const addReview = async (req, res) => {
   try {
     const homestayId = req.params.id;
@@ -208,11 +228,8 @@ export const addReview = async (req, res) => {
 
     await homestay.save();
 
-    // Notify host about new review
-   try {
-      // Getting the host user ID from homestay
+    try {
       const hostUserId = homestay.hostUserId;
-      
       if (hostUserId) {
         await Notification.create({
           userId: hostUserId,
@@ -220,12 +237,10 @@ export const addReview = async (req, res) => {
           title: '⭐ New Review Received',
           message: `${reviewerName} gave ${rating} stars to "${homestay.homestayName}"`
         });
-        
         console.log('Host notified about new review');
       }
     } catch (notifError) {
       console.error('Review notification error:', notifError);
-      // Don't fail review creation if notification fails
     }
 
     return res.json({ success: true, homestay });
@@ -235,7 +250,7 @@ export const addReview = async (req, res) => {
   }
 };
 
-// Get pending homestays
+// Get pending homestays — UNCHANGED
 export const getPendingHomestays = async (req, res) => {
   try {
     const homestays = await Homestay.find({ status: 'pending' }).sort({ submittedAt: -1 });
@@ -245,20 +260,19 @@ export const getPendingHomestays = async (req, res) => {
   }
 };
 
-// Get approved homestays (for public listings)
+// Get approved homestays — UNCHANGED
 export const getApprovedHomestays = async (req, res) => {
   try {
     const homestays = await Homestay.find({ status: 'approved' })
       .select('-citizenshipFiles -tourismRegistration -citizenshipNo -adminRemarks')
       .sort({ approvedAt: -1 });
-    
     return res.json({ success: true, homestays });
   } catch (error) {
     return res.json({ success: false, message: error.message });
   }
 };
 
-// Approve homestay
+// Approve homestay — ✅ EMBEDDING BLOCK ADDED, rest unchanged
 export const approveHomestay = async (req, res) => {
   try {
     const { id } = req.params;
@@ -274,8 +288,23 @@ export const approveHomestay = async (req, res) => {
     homestay.status = 'approved';
     homestay.approvedAt = new Date();
     homestay.adminRemarks = remarks || 'Approved by admin';
-
     await homestay.save();
+
+    // ✅ ADDED — generate and store embedding after approval
+    try {
+      const sourceText = buildHomestayTextForEmbedding(homestay);
+      const embedding = await generateEmbedding(sourceText);
+      await HomestayEmbedding.findOneAndUpdate(
+        { homestayId: homestay._id },
+        { homestayId: homestay._id, embedding, sourceText, modelVersion: 'all-MiniLM-L6-v2', generatedAt: new Date() },
+        { upsert: true, new: true }
+      );
+      console.log('Embedding generated for:', homestay.homestayName);
+    } catch (embeddingError) {
+      // Homestay still approved even if embedding fails
+      console.error('Embedding failed (homestay still approved):', embeddingError.message);
+      console.error('Make sure Python service is running: python embedding_service.py');
+    }
 
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
@@ -308,7 +337,7 @@ Thank you for joining Atithi!
   }
 };
 
-// Reject homestay
+// Reject homestay — UNCHANGED
 export const rejectHomestay = async (req, res) => {
   try {
     const { id } = req.params;
@@ -328,7 +357,6 @@ export const rejectHomestay = async (req, res) => {
     homestay.status = 'rejected';
     homestay.rejectedAt = new Date();
     homestay.adminRemarks = remarks;
-
     await homestay.save();
 
     const mailOptions = {
@@ -365,60 +393,37 @@ Atithi Team
     return res.json({ success: false, message: error.message });
   }
 };
-// Get host's own homestay
+
+// Get host's own homestay — UNCHANGED
 export const getMyHomestay = async (req, res) => {
   try {
     const { userId } = req.params;
-    
     const homestay = await Homestay.findOne({ 
       hostUserId: userId,
-      status: 'approved' // Only show if approved
+      status: 'approved'
     });
-    
     if (!homestay) {
-      return res.json({ 
-        success: false, 
-        message: 'No approved homestay found' 
-      });
+      return res.json({ success: false, message: 'No approved homestay found' });
     }
-    
-    return res.json({ 
-      success: true, 
-      homestay 
-    });
+    return res.json({ success: true, homestay });
   } catch (error) {
-    return res.json({ 
-      success: false, 
-      message: error.message 
-    });
+    return res.json({ success: false, message: error.message });
   }
 };
 
-// Update homestay (host can edit their own)
+// Update homestay — UNCHANGED
 export const updateHomestay = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
     
-    // Fields that hosts can update
     const allowedFields = [
-      'homestayName',
-      'description',
-      'rooms',
-      'guests',
-      'price',
-      'checkIn',
-      'checkOut',
-      'facilities',
-      'specialFeatures',
-      'smokingAllowed',
-      'petsAllowed',
-      'childrenAllowed',
-      'additionalRules',
-      'cancellationPolicy'
+      'homestayName', 'description', 'rooms', 'guests', 'price',
+      'checkIn', 'checkOut', 'facilities', 'specialFeatures',
+      'smokingAllowed', 'petsAllowed', 'childrenAllowed',
+      'additionalRules', 'cancellationPolicy'
     ];
     
-    // Filter only allowed fields
     const filteredData = {};
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {
@@ -433,10 +438,7 @@ export const updateHomestay = async (req, res) => {
     );
     
     if (!homestay) {
-      return res.json({ 
-        success: false, 
-        message: 'Homestay not found' 
-      });
+      return res.json({ success: false, message: 'Homestay not found' });
     }
     
     return res.json({ 
@@ -445,9 +447,65 @@ export const updateHomestay = async (req, res) => {
       homestay 
     });
   } catch (error) {
-    return res.json({ 
-      success: false, 
-      message: error.message 
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// ✅ ADDED — get unique facilities from approved homestays
+// Used in SmartRecommendation Step 3
+export const getUniqueFacilities = async (req, res) => {
+  try {
+    const homestays = await Homestay.find(
+      { status: 'approved' },
+      { facilities: 1, specialFeatures: 1 }  // facilities field matra fetch
+    );
+
+    // Sabai facilities ek array ma jod ra unique banau
+    const allFacilities = homestays.flatMap(h => h.facilities || []);
+    const allSpecialFeatures = homestays.flatMap(h => h.specialFeatures || []);
+
+    const uniqueFacilities = [...new Set([...allFacilities, ...allSpecialFeatures])]
+      .filter(f => f && f.trim() !== '');
+
+    return res.json({ success: true, facilities: uniqueFacilities });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// ✅ ADDED — regenerate embeddings for all approved homestays
+// Run once via Postman: POST /api/homestay/regenerate-embeddings
+export const regenerateAllEmbeddings = async (req, res) => {
+  try {
+    const homestays = await Homestay.find({ status: 'approved' });
+    console.log(`Regenerating embeddings for ${homestays.length} homestays...`);
+
+    let success = 0;
+    let failed = 0;
+
+    for (const homestay of homestays) {
+      try {
+        const sourceText = buildHomestayTextForEmbedding(homestay);
+        const embedding = await generateEmbedding(sourceText);
+        await HomestayEmbedding.findOneAndUpdate(
+          { homestayId: homestay._id },
+          { homestayId: homestay._id, embedding, sourceText, modelVersion: 'all-MiniLM-L6-v2', generatedAt: new Date() },
+          { upsert: true, new: true }
+        );
+        success++;
+        console.log(`  Done: ${homestay.homestayName}`);
+      } catch (err) {
+        failed++;
+        console.error(`  Failed: ${homestay.homestayName} — ${err.message}`);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Done: ${success} succeeded, ${failed} failed`,
+      total: homestays.length
     });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
   }
 };
