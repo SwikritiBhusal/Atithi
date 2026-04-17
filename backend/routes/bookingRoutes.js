@@ -4,6 +4,8 @@ import {
   createBooking,
   getUserBookings,
   getHostBookings,
+  getHostRevenue,
+  downloadHostRevenueReport,
   updateBookingStatus,
   getBookingDetails,
    cancelBooking,
@@ -22,6 +24,12 @@ router.get('/user/:userId', getUserBookings);
 
 // GET: Get host's bookings
 router.get('/host/:hostId', getHostBookings);
+
+// GET: Host revenue summary
+router.get('/host/:hostId/revenue', getHostRevenue);
+
+// GET: Host revenue PDF report
+router.get('/host/:hostId/revenue/report', downloadHostRevenueReport);
 
 // GET: Get single booking details
 router.get('/:bookingId', getBookingDetails);

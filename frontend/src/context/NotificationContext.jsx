@@ -12,7 +12,7 @@ const NotificationContext = createContext(null);
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastFetch, setLastFetch] = useState(Date.now()); // ⭐ Add timestamp
+  const [lastFetch, setLastFetch] = useState(Date.now()); 
 
   const fetchNotifications = async () => {
     try {

@@ -14,12 +14,8 @@ const storage = new CloudinaryStorage({
     ) {
       folder += 'documents';
     } else if (file.fieldname === 'homestayPhotos') {
-      folder += 'photos';
-      transformation = [
-        { width: 1200, height: 800, crop: 'limit' },
-        { quality: 'auto' },
-        { fetch_format: 'auto' }
-      ];
+  folder += 'photos';
+  transformation = [ ];
     }else if (file.fieldname === 'ownerPhoto') { 
       folder += 'owners';
       transformation = [
@@ -42,7 +38,7 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+  limits: { fileSize: 11 * 1024 * 1024 } // 11MB
 });
 
 export default upload;
