@@ -1,10 +1,6 @@
 import mongoose from 'mongoose';
  
-/**
- * Stores pre-computed AI embedding vectors for each approved homestay.
- * Generated once when admin approves — reused on every search.
- * This is what makes the system scalable.
- */
+
 const homestayEmbeddingSchema = new mongoose.Schema({
  
   homestayId: {
