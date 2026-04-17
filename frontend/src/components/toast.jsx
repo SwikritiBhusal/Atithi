@@ -53,7 +53,7 @@ function ToastItem({ toast, onRemove }) {
   );
 }
 
-// ✅ Custom hook — use this in any component
+// Custom hook — use this in any component
 export function useToast() {
   const [toasts, setToasts] = useState([]);
 

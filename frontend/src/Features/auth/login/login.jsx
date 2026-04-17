@@ -29,7 +29,14 @@ export default function LoginPage() {
         else navigate('/');
       } else navigate('/');
     }
+     
   }, [navigate]);
+
+  useEffect(() => {
+  if (location.state?.message) {
+    toast.info('Login Required', location.state.message);
+  }
+}, [location.state]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -75,23 +82,27 @@ export default function LoginPage() {
 
         // Redirect after short delay so toast is visible
         setTimeout(() => {
-          if (from === '/HomestayForm' && role === 'host') {
-            navigate('/HomestayForm');
-          } else if (role === 'admin') {
-            navigate('/Admin/overview');
-          } else if (role === 'host') {
-            if (result.user.hasApprovedHomestay) {
-              navigate('/Hosts/hostDashboard');
-            } else {
-              toast.info('Pending Approval', 'Your homestay is under review. You will be notified via email once approved.');
-              setTimeout(() => navigate('/'), 2500);
-            }
-          } else {
-            navigate('/');
-          }
+          // After localStorage set, inside setTimeout:
+if (from === '/HomestayForm') {
+  navigate('/HomestayForm'); 
+} else if (role === 'admin') {
+  navigate('/Admin/overview');
+} else if (role === 'host') {
+  if (result.user.hasApprovedHomestay) {
+    navigate('/Hosts/hostDashboard');
+  } else {
+    navigate('/HomestayForm'); 
+  }
+} else {
+  navigate('/');
+}
         }, 1200);
 
       } else {
+        if (result.isPending) {
+    navigate('/pending-approval', { state: { email: formData.email } });
+    return;
+  }
         setError(result.message || "Login failed!");
         // ✅ Error toast
         toast.error('Login Failed', result.message || 'Invalid email or password');
@@ -111,7 +122,7 @@ export default function LoginPage() {
   return (
     <>
       <Navbar />
-      {/* ✅ Toast renderer */}
+     
       <Toast toasts={toasts} removeToast={removeToast} />
 
       <div className="registerr-pagee-wrapperr">

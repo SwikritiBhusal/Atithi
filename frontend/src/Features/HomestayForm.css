@@ -762,6 +762,71 @@
   }
 }
 
+ 
+/* Field valid/invalid border */
+.homestay-input.valid,
+.homestay-textarea.valid {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08) !important;
+}
+ 
+.homestay-input.invalid,
+.homestay-textarea.invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08) !important;
+}
+ 
+/* Inline error message */
+.hf-field-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: -10px;
+  margin-bottom: 10px;
+  animation: hfMsgIn 0.2s ease;
+}
+ 
+/* Inline success message */
+.hf-field-success {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 500;
+  margin-top: -10px;
+  margin-bottom: 10px;
+  animation: hfMsgIn 0.2s ease;
+}
+ 
+@keyframes hfMsgIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+ 
+/* Photo size badge */
+.photo-size-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+ 
+/* Document upload success/error feedback */
+.homestay-document-upload .hf-field-error,
+.homestay-document-upload .hf-field-success {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .photo-preview-grid {

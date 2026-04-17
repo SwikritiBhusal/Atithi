@@ -1,138 +1,290 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Plus } from "lucide-react";
+import { X, Plus, CheckCircle, AlertCircle } from "lucide-react";
 import "./HomestayForm.css";
 import Navbar from "../components/Navbar";
+import { Toast, useToast } from "../components/toast";
 
+// ─── Validation Constants ─────────────────────────────────
+const PHOTO_MIN_MB = 0.1;   // 100KB minimum
+const PHOTO_MAX_MB = 8;     // 8MB maximum per photo
+const DOC_MIN_MB   = 0.05;  // 50KB minimum
+const DOC_MAX_MB   = 10;    // 10MB maximum per doc
 
+const toMB = (bytes) => bytes / (1024 * 1024);
+
+// ─── Field Validators ─────────────────────────────────────
+const validators = {
+  ownerName: (v) => {
+    if (!v?.trim()) return 'Full name is required';
+    if (v.trim().length < 3) return 'Name must be at least 3 characters';
+    return '';
+  },
+  phone: (v) => {
+    if (!v) return 'Phone number is required';
+    if (!/^\d+$/.test(v)) return 'Only numbers allowed';
+    if (v.length !== 10) return `Must be exactly 10 digits (${v.length}/10)`;
+    if (!/^9/.test(v)) return 'Nepali numbers must start with 9';
+    return '';
+  },
+  citizenshipNo: (v) => {
+    if (!v?.trim()) return 'Citizenship number is required';
+    if (v.trim().length < 5) return 'Enter a valid citizenship number';
+    return '';
+  },
+  homestayName: (v) => {
+    if (!v?.trim()) return 'Homestay name is required';
+    if (v.trim().length < 3) return 'At least 3 characters required';
+    if (v.trim().length > 80) return 'Maximum 80 characters';
+    return '';
+  },
+  description: (v) => {
+    if (!v?.trim()) return 'Description is required';
+    if (v.trim().length < 50) return `At least 50 characters required (${v.trim().length}/50)`;
+    if (v.trim().length > 1000) return 'Maximum 1000 characters';
+    return '';
+  },
+  province: (v) => (!v?.trim() ? 'Province is required' : ''),
+  district: (v) => (!v?.trim() ? 'District is required' : ''),
+  municipality: (v) => (!v?.trim() ? 'Municipality is required' : ''),
+  rooms: (v) => {
+    if (!v) return 'Number of rooms is required';
+    if (parseInt(v) < 1) return 'Minimum 1 room required';
+    if (parseInt(v) > 50) return 'Maximum 50 rooms allowed';
+    return '';
+  },
+  price: (v) => {
+    if (!v) return 'Price is required';
+    if (parseInt(v) < 500) return 'Minimum price is NPR 500';
+    if (parseInt(v) > 100000) return 'Maximum price is NPR 1,00,000';
+    return '';
+  },
+};
+
+// ─── Document Validator ───────────────────────────────────
+const validateDocuments = (files, type = 'pdf') => {
+  if (!files || files.length === 0) return 'Please upload this document as PDF';
+ 
+  const fileArray = Array.from(files);
+  for (const file of fileArray) {
+    const mb = toMB(file.size);
+    const ext = file.name.split('.').pop().toLowerCase();
+ 
+    // ONLY PDF ALLOWED
+    if (ext !== 'pdf') {
+      return `Only PDF files are allowed. You uploaded: .${ext}`;
+    }
+ 
+    if (mb < DOC_MIN_MB) {
+      return `File too small (min ${DOC_MIN_MB * 1000}KB). Please upload a clear PDF scan.`;
+    }
+    
+    if (mb > DOC_MAX_MB) {
+      return `File too large (max ${DOC_MAX_MB}MB). Your file is ${mb.toFixed(1)}MB`;
+    }
+  }
+  return '';
+};
+
+// ─── Photo Validator ──────────────────────────────────────
+const validatePhoto = (file) => {
+  const mb = toMB(file.size);
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowed = ['jpg', 'jpeg', 'png', 'webp'];
+
+  if (!allowed.includes(ext)) return `Only JPG, PNG, WEBP allowed (got .${ext})`;
+  if (mb < PHOTO_MIN_MB) return `Photo too small (min ${PHOTO_MIN_MB * 1000}KB). Use original camera photos.`;
+  if (mb > PHOTO_MAX_MB) return `Photo too large (max ${PHOTO_MAX_MB}MB). Got ${mb.toFixed(1)}MB`;
+  return '';
+};
+
+// ─── Inline Field Error Component ────────────────────────
+const FieldError = ({ error }) =>
+  error ? (
+    <div className="hf-field-error">
+      <AlertCircle size={13} />
+      <span>{error}</span>
+    </div>
+  ) : null;
+
+const FieldSuccess = ({ show, msg }) =>
+  show ? (
+    <div className="hf-field-success">
+      <CheckCircle size={13} />
+      <span>{msg || 'Looks good!'}</span>
+    </div>
+  ) : null;
+
+// ─── Main Component ───────────────────────────────────────
 const HomestayForm = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [photos, setPhotos] = useState([]); // For multiple homestay photos
-  const [ownerPhoto, setOwnerPhoto] = useState(null); // For owner photo
-  const [specialFeatures, setSpecialFeatures] = useState(['', '', '']); // 3 default inputs
+  const { toasts, toast, removeToast } = useToast();
+
+  const [user, setUser]             = useState(null);
+  const [photos, setPhotos]         = useState([]);
+  const [ownerPhoto, setOwnerPhoto] = useState(null);
+  const [specialFeatures, setSpecialFeatures] = useState(['', '', '']);
+  const [loading, setLoading]       = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [touched, setTouched]       = useState({});
+  const [docErrors, setDocErrors]   = useState({ citizenshipFiles: '', tourismRegistration: '' });
+  const [photoErrors, setPhotoErrors] = useState([]);
 
   const [formData, setFormData] = useState({
-    ownerName: "",
-    email: "",
-    phone: "",
-    citizenshipNo: "",
-    homestayName: "",
-    description: "",
-    province: "",
-    district: "",
-    municipality: "",
-    ward: "",
-    rooms: "",
-    guests: "",
-    price: "",
-    checkIn: "",
-    checkOut: "",
+    ownerName: '', email: '', phone: '', citizenshipNo: '',
+    homestayName: '', description: '',
+    province: '', district: '', municipality: '', ward: '',
+    rooms: '', guests: '', price: '', checkIn: '', checkOut: '',
     facilities: [],
     citizenshipFiles: null,
     tourismRegistration: null,
-    // New fields
-    smokingAllowed: false,
-    petsAllowed: false,
-    childrenAllowed: false,
-    additionalRules: "",
-    cancellationPolicy: "moderate",
+    smokingAllowed: false, petsAllowed: false, childrenAllowed: false,
+    additionalRules: '',
   });
 
-  // Check if user is logged in
+  // ─── Auth & existing homestay check ──────────────────
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      alert('Please login or register first to add your homestay!');
-      navigate('/login', { state: { from: '/HomestayForm' } });
-      return;
-    }
+    const checkUserAndHomestay = async () => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        setLoading(false);
+        navigate('/login', { state: { from: '/HomestayForm' } });
+        return;
+      }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
+      const userData = JSON.parse(userStr);
+      setUser(userData);
 
-    setFormData(prev => ({
-      ...prev,
-      ownerName: userData.username || "",
-      email: userData.email || "",
-      phone: userData.contactNumber || "",
-    }));
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/homestay/check-existing/${userData.id}`,
+          { credentials: 'include' }
+        );
+        const result = await response.json();
+
+        if (result.hasHomestay) {
+          if (result.status === 'pending') {
+            toast.info('Already Submitted', 'Your homestay is pending approval. Redirecting...');
+            setTimeout(() => navigate('/pending-approval', { state: { email: userData.email } }), 1500);
+            return;
+          } else if (result.status === 'approved') {
+            toast.success('Already Approved', 'Redirecting to dashboard...');
+            setTimeout(() => navigate('/Hosts/hostDashboard'), 1500);
+            return;
+          }
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          ownerName: userData.username || '',
+          email: userData.email || '',
+          phone: userData.contactNumber || '',
+        }));
+      } catch (error) {
+        console.error('Error checking homestay:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserAndHomestay();
   }, [navigate]);
 
+  // ─── Helpers ─────────────────────────────────────────
+  const getError = (field) => {
+    if (!touched[field]) return '';
+    return validators[field]?.(formData[field]) || '';
+  };
+
+  const getStatus = (field) => {
+    if (!touched[field] || !formData[field]) return '';
+    return getError(field) ? 'invalid' : 'valid';
+  };
+
+  const markTouched = (field) =>
+    setTouched(prev => ({ ...prev, [field]: true }));
+
+  // ─── Handlers ─────────────────────────────────────────
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    let v = value;
+    if (name === 'phone') v = value.replace(/\D/g, '').slice(0, 10);
+    setFormData(prev => ({ ...prev, [name]: v }));
   };
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
-    setFormData({ ...formData, [name]: checked });
-  };
-
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    setFormData({ ...formData, [name]: files });
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleFacilityChange = (e) => {
     const { value, checked } = e.target;
-    if (checked) {
-      setFormData({
-        ...formData,
-        facilities: [...formData.facilities, value],
-      });
-    } else {
-      setFormData({
-        ...formData,
-        facilities: formData.facilities.filter((f) => f !== value),
-      });
-    }
+    setFormData(prev => ({
+      ...prev,
+      facilities: checked
+        ? [...prev.facilities, value]
+        : prev.facilities.filter(f => f !== value)
+    }));
   };
 
-  // Owner photo handling
   const handleOwnerPhotoChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setOwnerPhoto({
-        file,
-        preview: URL.createObjectURL(file)
-      });
-    }
+    if (!file) return;
+    const err = validatePhoto(file);
+    if (err) { toast.error('Invalid Photo', err); return; }
+    setOwnerPhoto({ file, preview: URL.createObjectURL(file) });
   };
 
   const removeOwnerPhoto = () => {
-    if (ownerPhoto) {
-      URL.revokeObjectURL(ownerPhoto.preview);
-      setOwnerPhoto(null);
-    }
+    if (ownerPhoto) URL.revokeObjectURL(ownerPhoto.preview);
+    setOwnerPhoto(null);
   };
 
-  // Multiple homestay photos handling
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
-    
     if (photos.length + files.length > 10) {
-      alert('Maximum 10 photos allowed!');
+      toast.warning('Too Many Photos', 'Maximum 10 photos allowed!');
       return;
     }
 
-    const newPhotos = files.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    const errors = [];
+    const validFiles = [];
 
-    setPhotos((prev) => [...prev, ...newPhotos]);
-    e.target.value = "";
+    files.forEach((file, i) => {
+      const err = validatePhoto(file);
+      if (err) {
+        errors.push(`Photo ${i + 1}: ${err}`);
+      } else {
+        validFiles.push({ file, preview: URL.createObjectURL(file) });
+      }
+    });
+
+    if (errors.length > 0) {
+      toast.error('Some photos rejected', errors.join('\n'));
+    }
+
+    if (validFiles.length > 0) {
+      setPhotos(prev => [...prev, ...validFiles]);
+    }
+
+    e.target.value = '';
   };
 
   const removePhoto = (index) => {
-    setPhotos((prev) => {
+    setPhotos(prev => {
       URL.revokeObjectURL(prev[index].preview);
       return prev.filter((_, i) => i !== index);
     });
   };
 
-  // Special features handling
+  // Document file change with validation
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    const err = validateDocuments(files, 'any');
+    setDocErrors(prev => ({ ...prev, [name]: err }));
+    if (!err) setFormData(prev => ({ ...prev, [name]: files }));
+  };
+
   const handleSpecialFeatureChange = (index, value) => {
     const updated = [...specialFeatures];
     updated[index] = value;
@@ -140,37 +292,57 @@ const HomestayForm = () => {
   };
 
   const addSpecialFeature = () => {
-    if (specialFeatures.length < 6) {
-      setSpecialFeatures([...specialFeatures, '']);
-    }
+    if (specialFeatures.length < 6) setSpecialFeatures([...specialFeatures, '']);
   };
 
   const removeSpecialFeature = (index) => {
-    if (specialFeatures.length > 1) {
+    if (specialFeatures.length > 1)
       setSpecialFeatures(specialFeatures.filter((_, i) => i !== index));
-    }
   };
 
+  // ─── Submit ───────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!ownerPhoto) {
-      alert('Please upload your photo!');
+    // Mark all fields touched
+    const allFields = Object.keys(validators);
+    const newTouched = {};
+    allFields.forEach(f => { newTouched[f] = true; });
+    setTouched(newTouched);
+
+    // Check field errors
+    const fieldErrors = allFields.filter(f => validators[f]?.(formData[f]));
+    if (fieldErrors.length > 0) {
+      toast.error('Fix Errors', 'Please fix all highlighted fields before submitting');
       return;
     }
 
-    if (photos.length < 4) {
-      alert('Please upload at least 4 homestay photos!');
+    // Owner photo
+    if (!ownerPhoto) {
+      toast.warning('Photo Required', 'Please upload your photo!');
       return;
     }
+
+    // Homestay photos
+    if (photos.length < 4) {
+      toast.warning('More Photos Needed', `Upload at least 4 photos (${photos.length}/4)`);
+      return;
+    }
+
+    // Document validation
+    const citizenErr = validateDocuments(formData.citizenshipFiles, 'any');
+    const tourismErr = validateDocuments(formData.tourismRegistration, 'any');
+    setDocErrors({ citizenshipFiles: citizenErr, tourismRegistration: tourismErr });
+
+    if (citizenErr || tourismErr) {
+      toast.error('Document Error', 'Please fix document upload errors');
+      return;
+    }
+
+    setSubmitting(true);
 
     const data = new FormData();
-
-    // Append userId
     data.append('userId', user.id);
-
-    // Append basic fields
     data.append('ownerName', formData.ownerName);
     data.append('email', formData.email);
     data.append('phone', formData.phone);
@@ -187,85 +359,72 @@ const HomestayForm = () => {
     data.append('checkIn', formData.checkIn);
     data.append('checkOut', formData.checkOut);
     data.append('facilities', JSON.stringify(formData.facilities));
-
-    // Append new fields
     data.append('smokingAllowed', formData.smokingAllowed);
     data.append('petsAllowed', formData.petsAllowed);
     data.append('childrenAllowed', formData.childrenAllowed);
     data.append('additionalRules', formData.additionalRules);
-    data.append('cancellationPolicy', formData.cancellationPolicy);
-    
-    // Filter out empty special features
+
     const filledFeatures = specialFeatures.filter(f => f.trim() !== '');
     data.append('specialFeatures', JSON.stringify(filledFeatures));
 
-    // Append owner photo
-    if (ownerPhoto) {
-      data.append('ownerPhoto', ownerPhoto.file);
-    }
-
-    // Append citizenship files
-    if (formData.citizenshipFiles) {
-      Array.from(formData.citizenshipFiles).forEach(file => {
-        data.append('citizenshipFiles', file);
-      });
-    }
-
-    // Append tourism registration
-    if (formData.tourismRegistration) {
-      data.append('tourismRegistration', formData.tourismRegistration[0]);
-    }
-
-    // Append homestay photos
-    photos.forEach(({ file }) => {
-      data.append('homestayPhotos', file);
-    });
+    if (ownerPhoto) data.append('ownerPhoto', ownerPhoto.file);
+    Array.from(formData.citizenshipFiles).forEach(f => data.append('citizenshipFiles', f));
+    data.append('tourismRegistration', formData.tourismRegistration[0]);
+    photos.forEach(({ file }) => data.append('homestayPhotos', file));
 
     try {
       const response = await fetch('http://localhost:5000/api/homestay/submit', {
         method: 'POST',
         body: data
       });
-
       const result = await response.json();
 
       if (result.success) {
-        alert('✅ Homestay submitted successfully!\n\n📧 You will be notified via email once the admin reviews and approves your submission.\n\n⏳ Please wait for approval before accessing the host dashboard.');
-        navigate('/');
+        toast.success('Submitted!', 'Your homestay has been submitted for review.');
+        setTimeout(() => navigate('/pending-approval', { state: { email: user.email } }), 1200);
       } else {
-        alert(result.message || 'Submission failed!');
+        toast.error('Submission Failed', result.message || 'Something went wrong.');
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Submission failed! Please try again.');
+      toast.error('Network Error', 'Submission failed! Please check your connection.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (!user) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', fontSize: '1.2rem', color: '#666' }}>
+          Loading...
+        </div>
+      </>
+    );
   }
+
+  if (!user) return null;
 
   return (
     <>
       <Navbar />
+      <Toast toasts={toasts} removeToast={removeToast} />
+
       <div className="homestay-form-page">
         <div className="homestay-form-container">
           <h2 className="homestay-form-title">Add Your Stay</h2>
-          <p className="homestay-form-subtitle">
-            Submit your homestay details for admin verification.
-          </p>
+          <p className="homestay-form-subtitle">Submit your homestay details for admin verification.</p>
 
           <form onSubmit={handleSubmit} className="homestay-form">
-            {/* Owner Info */}
+
+            {/* ── Owner Info ── */}
             <h3 className="homestay-section-title">Owner Information</h3>
-            
-            {/* Owner Photo Upload */}
+
             <div className="owner-photo-section">
               <label className="homestay-label">
                 <span className="homestay-required">*</span> Your Photo
               </label>
-              <p className="homestay-file-hint">Upload a clear photo of yourself (builds trust with guests)</p>
-              
+              <p className="homestay-file-hint">Upload a clear photo of yourself (JPG/PNG, max 8MB)</p>
               {ownerPhoto ? (
                 <div className="photo-preview-single">
                   <img src={ownerPhoto.preview} alt="Owner" />
@@ -277,87 +436,116 @@ const HomestayForm = () => {
                 <label className="photo-upload-box">
                   <div className="upload-icon">📷</div>
                   <span>Click to upload your photo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleOwnerPhotoChange}
-                    style={{ display: 'none' }}
-                  />
+                  <input type="file" accept="image/jpg,image/jpeg,image/png,image/webp" onChange={handleOwnerPhotoChange} style={{ display: 'none' }} />
                 </label>
               )}
             </div>
 
+            {/* Owner Name */}
             <input
-              className="homestay-input"
+              className={`homestay-input ${getStatus('ownerName')}`}
               name="ownerName"
               placeholder="Owner Full Name"
               value={formData.ownerName}
               onChange={handleChange}
+              onBlur={() => markTouched('ownerName')}
               readOnly
               style={{ background: '#f8fafc', cursor: 'not-allowed' }}
-              required
             />
+            <FieldError error={getError('ownerName')} />
+
+            {/* Email */}
             <input
               className="homestay-input"
               name="email"
               type="email"
               placeholder="Email Address"
               value={formData.email}
-              onChange={handleChange}
               readOnly
               style={{ background: '#f8fafc', cursor: 'not-allowed' }}
-              required
             />
+
+            {/* Phone */}
             <input
-              className="homestay-input"
+              className={`homestay-input ${getStatus('phone')}`}
               name="phone"
-              placeholder="Mobile Number"
+              placeholder="Mobile Number (98XXXXXXXX)"
               value={formData.phone}
               onChange={handleChange}
-              required
+              onBlur={() => markTouched('phone')}
+              maxLength={10}
             />
+            <FieldError error={getError('phone')} />
+            <FieldSuccess show={touched.phone && !getError('phone')} msg="Valid phone number!" />
+
+            {/* Citizenship No */}
             <input
-              className="homestay-input"
+              className={`homestay-input ${getStatus('citizenshipNo')}`}
               name="citizenshipNo"
               placeholder="Citizenship Number"
               value={formData.citizenshipNo}
               onChange={handleChange}
-              required
+              onBlur={() => markTouched('citizenshipNo')}
             />
+            <FieldError error={getError('citizenshipNo')} />
 
-            {/* Homestay Info */}
+            {/* ── Homestay Info ── */}
             <h3 className="homestay-section-title">Homestay Details</h3>
+
             <input
-              className="homestay-input"
+              className={`homestay-input ${getStatus('homestayName')}`}
               name="homestayName"
               placeholder="Homestay Name"
               value={formData.homestayName}
               onChange={handleChange}
-              required
+              onBlur={() => markTouched('homestayName')}
             />
+            <FieldError error={getError('homestayName')} />
+
             <textarea
-              className="homestay-textarea"
+              className={`homestay-textarea ${getStatus('description')}`}
               name="description"
               placeholder="Describe your homestay (minimum 50 characters)"
               value={formData.description}
               onChange={handleChange}
+              onBlur={() => markTouched('description')}
               rows="5"
-              minLength="50"
-              required
-            ></textarea>
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '-12px', marginBottom: '8px' }}>
+              <FieldError error={getError('description')} />
+              <span style={{ fontSize: '12px', color: formData.description.length >= 50 ? '#10b981' : '#94a3b8' }}>
+                {formData.description.length}/1000
+              </span>
+            </div>
 
-            {/* Location */}
+            {/* ── Location ── */}
             <h3 className="homestay-section-title">Location</h3>
-            <input className="homestay-input" name="province" placeholder="Province" value={formData.province} onChange={handleChange} required />
-            <input className="homestay-input" name="district" placeholder="District" value={formData.district} onChange={handleChange} required />
-            <input className="homestay-input" name="municipality" placeholder="Municipality / Village" value={formData.municipality} onChange={handleChange} required />
-            <input className="homestay-input" name="ward" placeholder="Ward Number" value={formData.ward} onChange={handleChange} />
 
-            {/* Stay Info */}
+            <input className={`homestay-input ${getStatus('province')}`} name="province" placeholder="Province" value={formData.province} onChange={handleChange} onBlur={() => markTouched('province')} />
+            <FieldError error={getError('province')} />
+
+            <input className={`homestay-input ${getStatus('district')}`} name="district" placeholder="District" value={formData.district} onChange={handleChange} onBlur={() => markTouched('district')} />
+            <FieldError error={getError('district')} />
+
+            <input className={`homestay-input ${getStatus('municipality')}`} name="municipality" placeholder="Municipality / Village" value={formData.municipality} onChange={handleChange} onBlur={() => markTouched('municipality')} />
+            <FieldError error={getError('municipality')} />
+
+            <input className="homestay-input" name="ward" placeholder="Ward Number (optional)" value={formData.ward} onChange={handleChange} />
+
+            {/* ── Stay Info ── */}
             <h3 className="homestay-section-title">Stay Information</h3>
-            <input className="homestay-input" name="rooms" type="number" placeholder="Total Rooms" value={formData.rooms} onChange={handleChange} required />
-            <input className="homestay-input" name="guests" type="number" placeholder="Guests per Room" value={formData.guests} onChange={handleChange} />
-            <input className="homestay-input" name="price" type="number" placeholder="Price per Night (NPR)" value={formData.price} onChange={handleChange} required />
+
+            <input className={`homestay-input ${getStatus('rooms')}`} name="rooms" type="number" placeholder="Total Rooms (1-50)" value={formData.rooms} onChange={handleChange} onBlur={() => markTouched('rooms')} min="1" max="50" />
+            <FieldError error={getError('rooms')} />
+
+            <input className="homestay-input" name="guests" type="number" placeholder="Guests per Room (optional)" value={formData.guests} onChange={handleChange} min="1" />
+
+            <input className={`homestay-input ${getStatus('price')}`} name="price" type="number" placeholder="Price per Night (NPR 500 - 1,00,000)" value={formData.price} onChange={handleChange} onBlur={() => markTouched('price')} min="500" max="100000" />
+            <FieldError error={getError('price')} />
+            {touched.price && !getError('price') && formData.price && (
+              <FieldSuccess show msg={`NPR ${parseInt(formData.price).toLocaleString()} per night`} />
+            )}
+
             <div className="homestay-time-group">
               <div className="homestay-time-field">
                 <label className="homestay-label">Check-in Time</label>
@@ -369,10 +557,10 @@ const HomestayForm = () => {
               </div>
             </div>
 
-            {/* Facilities */}
+            {/* ── Facilities ── */}
             <h3 className="homestay-section-title">Facilities</h3>
             <div className="homestay-checkbox-group">
-              {["Local Food", "Cultural Experience", "Hot Water", "Free Wi-Fi", "Nature View", "Peaceful Environment"].map((item) => (
+              {["Local Food", "Cultural Experience", "Hot Water", "Free Wi-Fi", "Nature View", "Peaceful Environment", "Mountain View", "Trekking Access", "Yoga & Meditation", "Parking Available", "Traditional Food", "River View"].map((item) => (
                 <label key={item} className="homestay-checkbox-label">
                   <input type="checkbox" value={item} onChange={handleFacilityChange} checked={formData.facilities.includes(item)} className="homestay-checkbox" />
                   {item}
@@ -380,18 +568,13 @@ const HomestayForm = () => {
               ))}
             </div>
 
-            {/* NEW: Special Features */}
+            {/* ── Special Features ── */}
             <h3 className="homestay-section-title">What Makes Your Homestay Special?</h3>
-            <p className="homestay-file-hint">Highlight unique features that make your homestay stand out (e.g., "Mountain view from every room", "Traditional home-cooked meals")</p>
+            <p className="homestay-file-hint">Highlight unique features (e.g., "Mountain view from every room")</p>
             <div className="special-features-list">
               {specialFeatures.map((feature, index) => (
                 <div key={index} className="special-feature-item">
-                  <input
-                    className="homestay-input"
-                    placeholder={`Special feature ${index + 1}`}
-                    value={feature}
-                    onChange={(e) => handleSpecialFeatureChange(index, e.target.value)}
-                  />
+                  <input className="homestay-input" placeholder={`Special feature ${index + 1}`} value={feature} onChange={(e) => handleSpecialFeatureChange(index, e.target.value)} style={{ marginBottom: 0 }} />
                   {specialFeatures.length > 1 && (
                     <button type="button" className="remove-feature-btn" onClick={() => removeSpecialFeature(index)}>
                       <X size={16} />
@@ -406,53 +589,19 @@ const HomestayForm = () => {
               )}
             </div>
 
-            {/* NEW: House Rules */}
+            {/* ── House Rules ── */}
             <h3 className="homestay-section-title">House Rules</h3>
-            <p className="homestay-file-hint">Set clear expectations for your guests</p>
             <div className="house-rules-section">
-              <label className="rule-checkbox-label">
-                <input
-                  type="checkbox"
-                  name="smokingAllowed"
-                  checked={formData.smokingAllowed}
-                  onChange={handleCheckboxChange}
-                  className="homestay-checkbox"
-                />
-                <span>Smoking Allowed</span>
-              </label>
-              <label className="rule-checkbox-label">
-                <input
-                  type="checkbox"
-                  name="petsAllowed"
-                  checked={formData.petsAllowed}
-                  onChange={handleCheckboxChange}
-                  className="homestay-checkbox"
-                />
-                <span>Pets Allowed</span>
-              </label>
-              <label className="rule-checkbox-label">
-                <input
-                  type="checkbox"
-                  name="childrenAllowed"
-                  checked={formData.childrenAllowed}
-                  onChange={handleCheckboxChange}
-                  className="homestay-checkbox"
-                />
-                <span>Children Friendly</span>
-              </label>
+              {[['smokingAllowed', 'Smoking Allowed'], ['petsAllowed', 'Pets Allowed'], ['childrenAllowed', 'Children Friendly']].map(([name, label]) => (
+                <label key={name} className="rule-checkbox-label">
+                  <input type="checkbox" name={name} checked={formData[name]} onChange={handleCheckboxChange} className="homestay-checkbox" />
+                  <span>{label}</span>
+                </label>
+              ))}
             </div>
-            <textarea
-              className="homestay-textarea"
-              name="additionalRules"
-              placeholder="Additional house rules (optional)"
-              value={formData.additionalRules}
-              onChange={handleChange}
-              rows="3"
-            ></textarea>
+            <textarea className="homestay-textarea" name="additionalRules" placeholder="Additional house rules (optional)" value={formData.additionalRules} onChange={handleChange} rows="3" />
 
-            {/* NEW: Cancellation Policy */}
-            
-            {/* ⭐ UPDATED: Simple Cancellation Policy Info Box */}
+            {/* ── Cancellation Policy ── */}
             <h3 className="homestay-section-title">Cancellation Policy</h3>
             <div className="cancellation-policy-info">
               <div className="policy-info-box">
@@ -461,48 +610,91 @@ const HomestayForm = () => {
                   <h4>Standard Atithi Cancellation Policy</h4>
                   <p className="policy-subtitle">All homestays follow this simple, fair policy:</p>
                   <ul className="policy-points">
-                    <li><strong>✅ Within 2 hours of booking:</strong> 100% refund (grace period for mistakes)</li>
-                    <li><strong>✅ More than 2 hours, before check-in day:</strong> 80% refund (20% cancellation fee)</li>
-                    <li><strong>❌ On check-in day or after:</strong> No cancellation allowed</li>
+                    <li><strong>✅ Within 2 hours of booking:</strong> 100% refund</li>
+                    <li><strong>✅ More than 2 hours, before check-in:</strong> 80% refund</li>
+                    <li><strong>❌ On check-in day or after:</strong> No cancellation</li>
                   </ul>
-                  <p className="policy-note">
-                    💡 This policy protects both hosts and guests while maintaining flexibility for travelers. Refunds are processed within 7-10 business days.
-                  </p>
                 </div>
               </div>
             </div>
 
-            {/* KYC Documents */}
-            <h3 className="homestay-section-title">KYC Documents</h3>
-            <p className="homestay-kyc-note">Please upload clear copies of the required documents for verification purposes.</p>
-            <div className="homestay-document-upload">
-              <label className="homestay-label"><span className="homestay-required">*</span> Citizenship (Front & Back)</label>
-              <p className="homestay-file-hint">Upload both sides of your citizenship card</p>
-              <input className="homestay-file-input" type="file" name="citizenshipFiles" onChange={handleFileChange} multiple accept="image/*,application/pdf" required />
-            </div>
-            <div className="homestay-document-upload">
-              <label className="homestay-label"><span className="homestay-required">*</span> Tourism Registration / Community Homestay Letter</label>
-              <p className="homestay-file-hint">Upload your official tourism registration certificate or community homestay authorization letter</p>
-              <input className="homestay-file-input" type="file" name="tourismRegistration" onChange={handleFileChange} accept="image/*,application/pdf" required />
-            </div>
-
-            {/* Multiple Homestay Photos */}
+            {/* ── KYC Documents ── */}
+           <h3 className="homestay-section-title">KYC Documents</h3>
+<p className="homestay-kyc-note">⚠️ Upload clear PDF scans only | Min: 50KB | Max: 10MB per file</p>
+ 
+<div className="homestay-document-upload">
+  <label className="homestay-label">
+    <span className="homestay-required">*</span> Citizenship (Front & Back)
+  </label>
+  <p className="homestay-file-hint">
+    📄 Upload both sides as PDF files | Min: 50KB | Max: 10MB each
+  </p>
+  <input
+    className="homestay-file-input"
+    type="file"
+    name="citizenshipFiles"
+    onChange={handleFileChange}
+    multiple
+    accept=".pdf,application/pdf"
+  />
+  {docErrors.citizenshipFiles && (
+    <div className="hf-field-error">
+      <AlertCircle size={13} />
+      <span>{docErrors.citizenshipFiles}</span>
+    </div>
+  )}
+  {!docErrors.citizenshipFiles && formData.citizenshipFiles && (
+    <div className="hf-field-success">
+      <CheckCircle size={13} />
+      <span>✓ PDF documents uploaded successfully!</span>
+    </div>
+  )}
+</div>
+ 
+<div className="homestay-document-upload">
+  <label className="homestay-label">
+    <span className="homestay-required">*</span> Tourism Registration / Community Homestay Letter
+  </label>
+  <p className="homestay-file-hint">
+    📄 Upload your official certificate as PDF | Min: 50KB | Max: 10MB
+  </p>
+  <input
+    className="homestay-file-input"
+    type="file"
+    name="tourismRegistration"
+    onChange={handleFileChange}
+    accept=".pdf,application/pdf"
+  />
+  {docErrors.tourismRegistration && (
+    <div className="hf-field-error">
+      <AlertCircle size={13} />
+      <span>{docErrors.tourismRegistration}</span>
+    </div>
+  )}
+  {!docErrors.tourismRegistration && formData.tourismRegistration && (
+    <div className="hf-field-success">
+      <CheckCircle size={13} />
+      <span>✓ PDF document uploaded successfully!</span>
+    </div>
+  )}
+</div>
+            {/* ── Photos ── */}
             <h3 className="homestay-section-title">Homestay Photos</h3>
-            <label className="homestay-label">
-              <span className="homestay-required">*</span> Upload Photos (Minimum 4, Maximum 10)
-            </label>
-            <p className="homestay-file-hint">Include photos of rooms, common areas, exterior, and surrounding views</p>
-            
-            {/* Photo Upload Area */}
+            <label className="homestay-label"><span className="homestay-required">*</span> Upload Photos (Min 4, Max 10)</label>
+            <p className="homestay-file-hint">
+              JPG, PNG or WEBP only | Min: 100KB per photo | Max: 8MB per photo<br />
+              Include rooms, common areas, exterior and surroundings
+            </p>
+
             <div className="photo-upload-area">
               <label className="photo-upload-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 <span>Click to Add Photos</span>
-                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} style={{ display: "none" }} />
+                <input type="file" accept=".jpg,.jpeg,.png,.webp" multiple onChange={handlePhotoUpload} style={{ display: "none" }} />
               </label>
               <p className="photo-count-text">
                 {photos.length}/10 photos added
@@ -511,7 +703,6 @@ const HomestayForm = () => {
               </p>
             </div>
 
-            {/* Photo Previews Grid */}
             {photos.length > 0 && (
               <div className="photo-preview-grid">
                 {photos.map((photo, index) => (
@@ -521,19 +712,20 @@ const HomestayForm = () => {
                       <X size={16} />
                     </button>
                     <span className="photo-number-badge">{index + 1}</span>
+                    <span className="photo-size-badge">{toMB(photo.file.size).toFixed(1)}MB</span>
                   </div>
                 ))}
                 {photos.length < 10 && (
                   <label className="photo-add-more">
                     <Plus size={32} />
                     <span>Add More</span>
-                    <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} style={{ display: "none" }} />
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp" multiple onChange={handlePhotoUpload} style={{ display: "none" }} />
                   </label>
                 )}
               </div>
             )}
 
-            {/* Declaration */}
+            {/* ── Declaration ── */}
             <div className="homestay-declaration">
               <input type="checkbox" required className="homestay-checkbox" />
               <span className="homestay-declaration-text">
@@ -541,7 +733,10 @@ const HomestayForm = () => {
               </span>
             </div>
 
-            <button type="submit" className="homestay-submit-btn">Submit for Verification</button>
+            <button type="submit" className="homestay-submit-btn" disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit for Verification'}
+            </button>
+
           </form>
         </div>
       </div>
