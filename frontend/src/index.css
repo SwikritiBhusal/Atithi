@@ -1,68 +1,411 @@
-/* :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* ============================================
+   ATITHI — THEME SYSTEM
+   Precise selectors — no image blocking
+   ============================================ */
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
+html, body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* NEVER touch these — ever */
+img, video, canvas,
+.hero-wrap, .hero-slide,
+.card-image, .card-image-wrapper,
+.stay-image, .video-card, .video-card-inner,
+.listings-hero, .hero-pattern,
+.hero-content-wrap {
+  filter: none !important;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* ============================================
+   LIGHT (default) — unchanged
+   ============================================ */
+[data-theme="light"] {
+  background-color: #ffffff;
+  color: #1a1a2e;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-} */
+/* ============================================
+   DARK
+   ============================================ */
+[data-theme="dark"] {
+  background-color: #0f0f1a;
+  color: #f1f5f9;
+}
+
+/* Navbar */
+[data-theme="dark"] .navbar {
+  background: rgba(26, 26, 46, 0.97) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important;
+}
+[data-theme="dark"] .nav-links span {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .nav-links span:hover {
+  color: #a78bfa !important;
+}
+[data-theme="dark"] .profile-avatar-btn {
+  background: linear-gradient(135deg, #1e1e30, #252538) !important;
+  border-color: #3d3d5c !important;
+}
+[data-theme="dark"] .avatar-name {
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .profile-dropdown {
+  background: #1e1e30 !important;
+  border-color: #2d2d45 !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+}
+[data-theme="dark"] .dropdown-header {
+  background: linear-gradient(135deg, #252538, #2d2d45) !important;
+}
+[data-theme="dark"] .dropdown-name {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .dropdown-role {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .dropdown-item {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .dropdown-item:hover {
+  background: #252538 !important;
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .dropdown-divider {
+  background: #2d2d45 !important;
+}
+[data-theme="dark"] .dropdown-item.logout {
+  color: #f87171 !important;
+}
+
+/* Page backgrounds */
+[data-theme="dark"] .listings-page {
+  background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%) !important;
+}
+[data-theme="dark"] .registerr-pagee-wrapperr,
+[data-theme="dark"] .homestay-form-page,
+[data-theme="dark"] .pa-wrapper {
+  background-color: #0f0f1a !important;
+}
+
+/* Search section & cards */
+[data-theme="dark"] .search-section {
+  background: #1e1e30 !important;
+  border-color: #2d2d45 !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
+}
+[data-theme="dark"] .search-bar {
+  background: linear-gradient(135deg, #252538, #1e1e30) !important;
+  border-color: #3d3d5c !important;
+}
+[data-theme="dark"] .search-bar input {
+  color: #f1f5f9 !important;
+  background: transparent !important;
+}
+[data-theme="dark"] .search-bar input::placeholder {
+  color: #64748b !important;
+}
+[data-theme="dark"] .filter-group {
+  background: #252538 !important;
+  border-color: #3d3d5c !important;
+}
+[data-theme="dark"] .filter-group select {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .filter-group svg,
+[data-theme="dark"] .filter-group span {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .results-count {
+  color: #94a3b8 !important;
+}
+
+/* Homestay cards — content only, NOT image wrapper */
+[data-theme="dark"] .homestay-card {
+  background: #1e1e30 !important;
+  border-color: #2d2d45 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+}
+[data-theme="dark"] .card-content {
+  background: #1e1e30 !important;
+}
+[data-theme="dark"] .card-title {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .card-location {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .card-description {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .card-rating {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .rating-text {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .feature {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .price {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .price-unit {
+  color: #64748b !important;
+}
+[data-theme="dark"] .facility-tag {
+  background: #252538 !important;
+  border-color: #3d3d5c !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .card-facilities {
+  border-bottom-color: #2d2d45 !important;
+}
+
+/* Login card */
+[data-theme="dark"] .login-cardd {
+  background: #1e1e30 !important;
+  border-color: #2d2d45 !important;
+}
+[data-theme="dark"] .login-cardd h3,
+[data-theme="dark"] .login-cardd p,
+[data-theme="dark"] .login-cardd label {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .welcome-textt {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .input-containerr {
+  background: #252538 !important;
+  border-color: #3d3d5c !important;
+}
+[data-theme="dark"] .input-containerr input {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .input-containerr input::placeholder {
+  color: #64748b !important;
+}
+
+/* Homestay form */
+[data-theme="dark"] .homestay-form-container {
+  background: #1e1e30 !important;
+}
+[data-theme="dark"] .homestay-input,
+[data-theme="dark"] .homestay-textarea {
+  background: #252538 !important;
+  border-color: #3d3d5c !important;
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .homestay-input::placeholder,
+[data-theme="dark"] .homestay-textarea::placeholder {
+  color: #64748b !important;
+}
+[data-theme="dark"] .homestay-form-title,
+[data-theme="dark"] .homestay-section-title,
+[data-theme="dark"] .homestay-form-subtitle,
+[data-theme="dark"] .homestay-label {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .policy-info-box {
+  background: #252538 !important;
+  border-color: #3d3d5c !important;
+}
+
+/* Pending approval page */
+[data-theme="dark"] .pa-card {
+  background: #1e1e30 !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+}
+[data-theme="dark"] .pa-title,
+[data-theme="dark"] .pa-subtitle,
+[data-theme="dark"] .pa-brand {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .pa-info-box {
+  background: #252538 !important;
+  border-color: #3d3d5c !important;
+}
+[data-theme="dark"] .pa-info-row {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .pa-step {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .pa-step-dot {
+  background: #2d2d45 !important;
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .pa-step-line--pending {
+  background: #2d2d45 !important;
+}
+[data-theme="dark"] .pa-btn--ghost {
+  color: #94a3b8 !important;
+  border-color: #3d3d5c !important;
+}
+
+/* Footer */
+[data-theme="dark"] .footer {
+  background-color: #0a0a14 !important;
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .footer h3,
+[data-theme="dark"] .footer a,
+[data-theme="dark"] .footer p {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .footer-bottom {
+  border-top-color: #1e1e30 !important;
+}
+
+/* Featured stays section on homepage */
+[data-theme="dark"] .featured {
+  background-color: #0f0f1a !important;
+}
+[data-theme="dark"] .featured h2,
+[data-theme="dark"] .featured-eyebrow,
+[data-theme="dark"] .featured-sub {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .stay-card {
+  background: #1e1e30 !important;
+  border-color: #2d2d45 !important;
+}
+[data-theme="dark"] .stay-info {
+  background: #1e1e30 !important;
+}
+[data-theme="dark"] .stay-info h3,
+[data-theme="dark"] .stay-info p {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .stay-footer {
+  background: #1e1e30 !important;
+}
+
+/* ============================================
+   LAVENDER — gentle tint
+   ============================================ */
+[data-theme="lavender"] {
+  background-color: #faf8ff;
+  color: #2e1065;
+}
+[data-theme="lavender"] .navbar {
+  background: rgba(250, 248, 255, 0.97) !important;
+  border-bottom: 1px solid #ddd6fe !important;
+  box-shadow: 0 2px 12px rgba(124,58,237,0.08) !important;
+}
+[data-theme="lavender"] .nav-links span:hover {
+  color: #7c3aed !important;
+}
+[data-theme="lavender"] .listings-page {
+  background: linear-gradient(180deg, #faf8ff 0%, #f3f0ff 100%) !important;
+}
+[data-theme="lavender"] .registerr-pagee-wrapperr,
+[data-theme="lavender"] .homestay-form-page {
+  background-color: #faf8ff !important;
+}
+[data-theme="lavender"] .listings-hero {
+  background: linear-gradient(135deg, #c4b5fd 20%, #e9d5ff 50%, #ddd6fe 100%) !important;
+}
+[data-theme="lavender"] .search-bar:focus-within {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.1) !important;
+}
+[data-theme="lavender"] .filter-group:hover {
+  border-color: #7c3aed !important;
+}
+[data-theme="lavender"] .btn-add-stay,
+[data-theme="lavender"] .login-buttonn,
+[data-theme="lavender"] .homestay-submit-btn,
+[data-theme="lavender"] .book-btn,
+[data-theme="lavender"] .btn-view,
+[data-theme="lavender"] .pa-btn--primary {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa) !important;
+  color: #ffffff !important;
+}
+[data-theme="lavender"] .featured {
+  background-color: #f3f0ff !important;
+}
+[data-theme="lavender"] .footer {
+  background-color: #ede9fe !important;
+}
+[data-theme="lavender"] .homestay-input:focus,
+[data-theme="lavender"] .homestay-textarea:focus {
+  border-color: #7c3aed !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+}
+
+/* ============================================
+   FOREST GREEN — gentle tint
+   ============================================ */
+[data-theme="forest"] {
+  background-color: #f6faf6;
+  color: #14302a;
+}
+[data-theme="forest"] .navbar {
+  background: rgba(246, 250, 246, 0.97) !important;
+  border-bottom: 1px solid #bbf7d0 !important;
+  box-shadow: 0 2px 12px rgba(22,163,74,0.08) !important;
+}
+[data-theme="forest"] .nav-links span:hover {
+  color: #16a34a !important;
+}
+[data-theme="forest"] .listings-page {
+  background: linear-gradient(180deg, #f6faf6 0%, #edf5ed 100%) !important;
+}
+[data-theme="forest"] .registerr-pagee-wrapperr,
+[data-theme="forest"] .homestay-form-page {
+  background-color: #f6faf6 !important;
+}
+[data-theme="forest"] .listings-hero {
+  background: linear-gradient(135deg, #86efac 20%, #d1fae5 50%, #bbf7d0 100%) !important;
+}
+[data-theme="forest"] .search-bar:focus-within {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 4px rgba(22,163,74,0.1) !important;
+}
+[data-theme="forest"] .filter-group:hover {
+  border-color: #16a34a !important;
+}
+[data-theme="forest"] .btn-add-stay,
+[data-theme="forest"] .login-buttonn,
+[data-theme="forest"] .homestay-submit-btn,
+[data-theme="forest"] .book-btn,
+[data-theme="forest"] .btn-view,
+[data-theme="forest"] .pa-btn--primary {
+  background: linear-gradient(135deg, #16a34a, #4ade80) !important;
+  color: #ffffff !important;
+}
+[data-theme="forest"] .featured {
+  background-color: #edf5ed !important;
+}
+[data-theme="forest"] .footer {
+  background-color: #dcfce7 !important;
+}
+[data-theme="forest"] .homestay-input:focus,
+[data-theme="forest"] .homestay-textarea:focus {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.12) !important;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border-radius: 3px; background: #cbd5e1; }
+
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #1a1a2e; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #3d3d5c; }
+[data-theme="lavender"] ::-webkit-scrollbar-thumb { background: #c4b5fd; }
+[data-theme="forest"] ::-webkit-scrollbar-thumb { background: #86efac; }

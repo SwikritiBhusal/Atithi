@@ -1,0 +1,125 @@
+/* ThemeToggle.css */
+
+.theme-toggle-wrap {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* Floating Action Button */
+.theme-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.theme-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+
+.theme-fab:active {
+  transform: scale(0.95);
+}
+
+/* Panel */
+.theme-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  animation: panelPop 0.2s ease;
+}
+
+@keyframes panelPop {
+  from { opacity: 0; transform: scale(0.9) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.theme-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+  color: var(--text-primary);
+}
+
+.theme-option:hover {
+  background: var(--bg-hover);
+  border-color: transparent;
+}
+
+.theme-option.active {
+  background: var(--accent-light);
+  border-color: var(--accent-primary);
+}
+
+.theme-option-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.theme-option-label {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.theme-option-check {
+  font-size: 13px;
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .theme-toggle-wrap {
+    bottom: 20px;
+    right: 16px;
+  }
+
+  .theme-fab {
+    width: 46px;
+    height: 46px;
+    font-size: 20px;
+  }
+}
