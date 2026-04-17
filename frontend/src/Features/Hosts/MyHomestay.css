@@ -172,7 +172,7 @@
 /* Overview Cards */
 .mh-overview {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
   margin-bottom: 32px;
 }
@@ -206,6 +206,11 @@
 .mh-card-icon.green {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #065f46;
+}
+
+.mh-card-icon.red {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #b91c1c;
 }
 
 .mh-card-icon.orange {
@@ -348,6 +353,31 @@
 }
 
 /* Photos Grid */
+.mh-photo-upload {
+  margin-bottom: 18px;
+}
+
+.mh-upload-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border: 2px dashed #bfdbfe;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  color: #1e3a8a;
+  cursor: pointer;
+}
+
+.mh-upload-box small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.mh-upload-box input {
+  display: none;
+}
+
 .mh-photos-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

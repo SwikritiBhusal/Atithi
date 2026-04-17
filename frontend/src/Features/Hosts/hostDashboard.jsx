@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Calendar, User, LogOut, Menu, X } from 'lucide-react';
+import { Home, Calendar, User, LogOut, Menu, X, Wallet } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import './hostDashboard.css';
 import MyHomestay from './MyHomestay';
 import Logo from "../../assets/images/atithi-high-resolution-logo.png";
 import HostBookings from './hostBookings';
 import HostProfile from './HostProfile';
+import HostRevenue from './HostRevenue';
 
 export default function HostDashboard() {
   const navigate = useNavigate();
@@ -60,6 +61,8 @@ export default function HostDashboard() {
         return <MyHomestay />;
       case 'bookings':
         return <HostBookings />;
+      case 'revenue':
+        return <HostRevenue />;
       case 'profile':
         return <HostProfile />;
       default:
@@ -119,6 +122,14 @@ export default function HostDashboard() {
             <Calendar size={20} />
             {sidebarOpen && <span>Bookings</span>}
             {/* {sidebarOpen && <span className="hd-badge">3</span>} */}
+          </button>
+
+          <button
+            className={`hd-nav-item ${activeTab === 'revenue' ? 'active' : ''}`}
+            onClick={() => setActiveTab('revenue')}
+          >
+            <Wallet size={20} />
+            {sidebarOpen && <span>Revenue</span>}
           </button>
 
           <button

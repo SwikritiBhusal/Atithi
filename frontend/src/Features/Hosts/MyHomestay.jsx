@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Edit2, Save, X, MapPin, Home, Users, DollarSign, Clock, Star } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Edit2,
+  Save,
+  X,
+  MapPin,
+  Home,
+  Users,
+  DollarSign,
+  Star,
+  Upload,
+  Ban
+} from 'lucide-react';
 import './MyHomestay.css';
 
 export default function MyHomestay() {
@@ -8,10 +19,31 @@ export default function MyHomestay() {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [newPhotos, setNewPhotos] = useState([]);
 
   useEffect(() => {
     fetchMyHomestay();
   }, []);
+
+  const previewPhotos = useMemo(() => {
+    if (editing && newPhotos.length > 0) {
+      return newPhotos.map((photo) => ({
+        url: URL.createObjectURL(photo)
+      }));
+    }
+
+    return homestay?.homestayPhotos || [];
+  }, [editing, homestay, newPhotos]);
+
+  useEffect(() => {
+    return () => {
+      previewPhotos.forEach((photo) => {
+        if (photo.url?.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.url);
+        }
+      });
+    };
+  }, [previewPhotos]);
 
   const fetchMyHomestay = async () => {
     try {
@@ -20,7 +52,7 @@ export default function MyHomestay() {
         credentials: 'include'
       });
       const result = await response.json();
-      
+
       if (result.success) {
         setHomestay(result.homestay);
         setEditData(result.homestay);
@@ -35,44 +67,66 @@ export default function MyHomestay() {
   const handleEdit = () => {
     setEditing(true);
     setEditData({ ...homestay });
+    setNewPhotos([]);
   };
 
   const handleCancel = () => {
     setEditing(false);
     setEditData({ ...homestay });
+    setNewPhotos([]);
   };
 
   const handleChange = (field, value) => {
-    setEditData(prev => ({ ...prev, [field]: value }));
+    setEditData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleFacilityToggle = (facility) => {
-    setEditData(prev => ({
+    setEditData((prev) => ({
       ...prev,
-      facilities: prev.facilities.includes(facility)
-        ? prev.facilities.filter(f => f !== facility)
-        : [...prev.facilities, facility]
+      facilities: (prev.facilities || []).includes(facility)
+        ? (prev.facilities || []).filter((item) => item !== facility)
+        : [...(prev.facilities || []), facility]
     }));
+  };
+
+  const handlePhotoSelection = (files) => {
+    setNewPhotos(Array.from(files || []));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      const formData = new FormData();
+      formData.append('homestayName', editData.homestayName || '');
+      formData.append('description', editData.description || '');
+      formData.append('rooms', String(editData.rooms || 0));
+      formData.append('blockedRooms', String(editData.blockedRooms || 0));
+      formData.append('guests', String(editData.guests || 0));
+      formData.append('price', String(editData.price || 0));
+      formData.append('checkIn', editData.checkIn || '');
+      formData.append('checkOut', editData.checkOut || '');
+      formData.append('facilities', JSON.stringify(editData.facilities || []));
+
+      newPhotos.forEach((photo) => {
+        formData.append('homestayPhotos', photo);
+      });
+
       const response = await fetch(`http://localhost:5000/api/homestay/update/${homestay._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(editData)
+        body: formData
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
-        alert('✅ Homestay updated successfully!');
-        setHomestay(editData);
+        alert('Homestay updated successfully!');
+        setHomestay(result.homestay);
+        setEditData(result.homestay);
         setEditing(false);
+        setNewPhotos([]);
       } else {
-        alert('Failed to update: ' + result.message);
+        alert(`Failed to update: ${result.message}`);
       }
     } catch (error) {
       console.error('Error updating:', error);
@@ -98,13 +152,12 @@ export default function MyHomestay() {
 
   return (
     <div className="my-homestay">
-      {/* Header */}
       <div className="mh-header">
         <div>
           <h1 className="mh-title">My Homestay</h1>
-          <p className="mh-subtitle">Manage your homestay listing</p>
+          <p className="mh-subtitle">Manage your homestay listing, gallery, and room availability</p>
         </div>
-        
+
         {!editing ? (
           <button className="mh-edit-btn" onClick={handleEdit}>
             <Edit2 size={18} />
@@ -124,13 +177,11 @@ export default function MyHomestay() {
         )}
       </div>
 
-      {/* Status Badge */}
       <div className={`mh-status-badge ${homestay.status}`}>
         <span className="status-dot"></span>
         Status: {homestay.status.charAt(0).toUpperCase() + homestay.status.slice(1)}
       </div>
 
-      {/* Overview Cards */}
       <div className="mh-overview">
         <div className="mh-card">
           <div className="mh-card-icon blue">
@@ -139,6 +190,16 @@ export default function MyHomestay() {
           <div>
             <span className="mh-card-label">Total Rooms</span>
             <span className="mh-card-value">{homestay.rooms}</span>
+          </div>
+        </div>
+
+        <div className="mh-card">
+          <div className="mh-card-icon red">
+            <Ban size={24} />
+          </div>
+          <div>
+            <span className="mh-card-label">Blocked Rooms</span>
+            <span className="mh-card-value">{homestay.blockedRooms || 0}</span>
           </div>
         </div>
 
@@ -167,15 +228,13 @@ export default function MyHomestay() {
             <Star size={24} />
           </div>
           <div>
-            <span className="mh-card-label">Total Bookings</span>
-            <span className="mh-card-value">0</span>
+            <span className="mh-card-label">Rooms Available Now</span>
+            <span className="mh-card-value">{homestay.availableRooms ?? homestay.rooms}</span>
           </div>
         </div>
       </div>
 
-      {/* Details Sections */}
       <div className="mh-sections">
-        {/* Basic Info */}
         <div className="mh-section">
           <h3 className="mh-section-title">Basic Information</h3>
           <div className="mh-form">
@@ -184,7 +243,7 @@ export default function MyHomestay() {
               {editing ? (
                 <input
                   type="text"
-                  value={editData.homestayName}
+                  value={editData.homestayName || ''}
                   onChange={(e) => handleChange('homestayName', e.target.value)}
                 />
               ) : (
@@ -196,7 +255,7 @@ export default function MyHomestay() {
               <label>Description</label>
               {editing ? (
                 <textarea
-                  value={editData.description}
+                  value={editData.description || ''}
                   onChange={(e) => handleChange('description', e.target.value)}
                   rows="4"
                 />
@@ -207,7 +266,6 @@ export default function MyHomestay() {
           </div>
         </div>
 
-        {/* Location */}
         <div className="mh-section">
           <h3 className="mh-section-title">
             <MapPin size={18} />
@@ -233,7 +291,6 @@ export default function MyHomestay() {
           </div>
         </div>
 
-        {/* Stay Details */}
         <div className="mh-section">
           <h3 className="mh-section-title">Stay Details</h3>
           <div className="mh-form">
@@ -242,8 +299,8 @@ export default function MyHomestay() {
               {editing ? (
                 <input
                   type="number"
-                  value={editData.rooms}
-                  onChange={(e) => handleChange('rooms', parseInt(e.target.value))}
+                  value={editData.rooms || 1}
+                  onChange={(e) => handleChange('rooms', parseInt(e.target.value, 10) || 1)}
                   min="1"
                 />
               ) : (
@@ -252,12 +309,27 @@ export default function MyHomestay() {
             </div>
 
             <div className="mh-field">
+              <label>Blocked Rooms</label>
+              {editing ? (
+                <input
+                  type="number"
+                  value={editData.blockedRooms || 0}
+                  onChange={(e) => handleChange('blockedRooms', parseInt(e.target.value, 10) || 0)}
+                  min="0"
+                  max={editData.rooms || 0}
+                />
+              ) : (
+                <p>{homestay.blockedRooms || 0}</p>
+              )}
+            </div>
+
+            <div className="mh-field">
               <label>Guests per Room</label>
               {editing ? (
                 <input
                   type="number"
-                  value={editData.guests}
-                  onChange={(e) => handleChange('guests', parseInt(e.target.value))}
+                  value={editData.guests || 1}
+                  onChange={(e) => handleChange('guests', parseInt(e.target.value, 10) || 1)}
                   min="1"
                 />
               ) : (
@@ -270,8 +342,8 @@ export default function MyHomestay() {
               {editing ? (
                 <input
                   type="number"
-                  value={editData.price}
-                  onChange={(e) => handleChange('price', parseInt(e.target.value))}
+                  value={editData.price || 0}
+                  onChange={(e) => handleChange('price', parseInt(e.target.value, 10) || 0)}
                   min="0"
                 />
               ) : (
@@ -284,7 +356,7 @@ export default function MyHomestay() {
               {editing ? (
                 <input
                   type="time"
-                  value={editData.checkIn}
+                  value={editData.checkIn || ''}
                   onChange={(e) => handleChange('checkIn', e.target.value)}
                 />
               ) : (
@@ -297,7 +369,7 @@ export default function MyHomestay() {
               {editing ? (
                 <input
                   type="time"
-                  value={editData.checkOut}
+                  value={editData.checkOut || ''}
                   onChange={(e) => handleChange('checkOut', e.target.value)}
                 />
               ) : (
@@ -307,11 +379,10 @@ export default function MyHomestay() {
           </div>
         </div>
 
-        {/* Facilities */}
         <div className="mh-section">
           <h3 className="mh-section-title">Facilities</h3>
           <div className="mh-facilities">
-            {['Local Food', 'Cultural Experience', 'Hot Water', 'Free Wi-Fi', 'Nature View', 'Peaceful Environment'].map(facility => (
+            {['Local Food', 'Cultural Experience', 'Hot Water', 'Free Wi-Fi', 'Nature View', 'Peaceful Environment'].map((facility) => (
               <label key={facility} className={`mh-facility ${editing ? 'editable' : ''}`}>
                 <input
                   type="checkbox"
@@ -325,11 +396,25 @@ export default function MyHomestay() {
           </div>
         </div>
 
-        {/* Photos */}
         <div className="mh-section">
-          <h3 className="mh-section-title">Photos ({homestay.homestayPhotos?.length || 0})</h3>
+          <h3 className="mh-section-title">Photos ({previewPhotos.length || 0})</h3>
+          {editing && (
+            <div className="mh-photo-upload">
+              <label className="mh-upload-box">
+                <Upload size={20} />
+                <span>{newPhotos.length ? `${newPhotos.length} new photo(s) selected` : 'Choose new photos to replace your current gallery'}</span>
+                <small>Selecting photos will replace the existing gallery across details and listing pages.</small>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handlePhotoSelection(e.target.files)}
+                />
+              </label>
+            </div>
+          )}
           <div className="mh-photos-grid">
-            {homestay.homestayPhotos?.map((photo, index) => (
+            {previewPhotos.map((photo, index) => (
               <div key={index} className="mh-photo">
                 <img src={photo.url} alt={`Photo ${index + 1}`} />
                 <span className="mh-photo-number">{index + 1}</span>

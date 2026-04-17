@@ -4,6 +4,221 @@ import Booking from '../models/bookingModel.js';
 import Cancellation from '../models/cancellationModel.js';
 import Notification from "../models/notificationsModel.js";
 import { sendBookingConfirmationEmail } from '../utils/emailService.js';
+import Homestay from '../models/homestayModel.js';
+
+const formatCurrency = (amount = 0) => `NPR ${Number(amount || 0).toLocaleString()}`;
+
+const formatReportDate = (value) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+const sanitizePdfText = (value = '') =>
+  String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+
+const buildRevenueEntries = (bookings = []) =>
+  bookings.map((booking) => {
+    const cancellation = booking.cancellation || null;
+    const deductionAmount = booking.status === 'cancelled'
+      ? Number(cancellation?.refundAmount || booking.advancePayment || 0)
+      : 0;
+    const retainedAmount = booking.status === 'cancelled'
+      ? Number(booking.advancePayment || 0) - deductionAmount
+      : Number(booking.advancePayment || 0);
+
+    return {
+      id: booking._id,
+      bookingId: booking.bookingId,
+      guestName: booking.guestName,
+      homestayName: booking.homestayName,
+      createdAt: booking.createdAt,
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      status: booking.status,
+      totalPrice: Number(booking.totalPrice || 0),
+      collectedAmount: Number(booking.advancePayment || 0),
+      pendingAmount: booking.status === 'cancelled' ? 0 : Number(booking.remainingPayment || 0),
+      deductionAmount,
+      netCollectedAmount: retainedAmount,
+      cancellationFee: Number(cancellation?.cancellationFee || 0),
+      refundAmount: Number(cancellation?.refundAmount || 0),
+      refundStatus: cancellation?.refundStatus || null,
+      cancellationReason: booking.cancellationReason || cancellation?.reason || ''
+    };
+  });
+
+const getAvailableRoomsForBooking = async ({ homestayId, checkIn, checkOut }) => {
+  const homestay = await Homestay.findById(homestayId).select('rooms blockedRooms');
+  if (!homestay) {
+    return null;
+  }
+
+  const overlappingBookings = await Booking.find({
+    homestayId,
+    checkIn: { $lt: new Date(checkOut) },
+    checkOut: { $gt: new Date(checkIn) },
+    status: { $in: ['confirmed', 'completed'] }
+  }).select('rooms');
+
+  const bookedRooms = overlappingBookings.reduce(
+    (total, booking) => total + Number(booking.rooms || 0),
+    0
+  );
+
+  return Math.max(
+    0,
+    Number(homestay.rooms || 0) - Number(homestay.blockedRooms || 0) - bookedRooms
+  );
+};
+
+const buildRevenueSummary = (entries = []) => entries.reduce((summary, entry) => {
+  summary.totalBookings += 1;
+  summary.totalGrossRevenue += entry.totalPrice;
+  summary.totalCollectedRevenue += entry.collectedAmount;
+  summary.totalPendingRevenue += entry.pendingAmount;
+  summary.totalDeductions += entry.deductionAmount;
+  summary.netCollectedRevenue += entry.netCollectedAmount;
+
+  if (entry.status === 'confirmed') summary.confirmedBookings += 1;
+  if (entry.status === 'completed') summary.completedBookings += 1;
+  if (entry.status === 'cancelled') summary.cancelledBookings += 1;
+
+  return summary;
+}, {
+  totalBookings: 0,
+  confirmedBookings: 0,
+  completedBookings: 0,
+  cancelledBookings: 0,
+  totalGrossRevenue: 0,
+  totalCollectedRevenue: 0,
+  totalPendingRevenue: 0,
+  totalDeductions: 0,
+  netCollectedRevenue: 0
+});
+
+const createPdfBuffer = ({ title, subtitle, summary, entries }) => {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const marginLeft = 40;
+  const marginTop = 40;
+  const lineHeight = 16;
+  const linesPerPage = 44;
+
+  const lines = [
+    title,
+    subtitle,
+    '',
+    `Total bookings: ${summary.totalBookings}`,
+    `Confirmed: ${summary.confirmedBookings}   Completed: ${summary.completedBookings}   Cancelled: ${summary.cancelledBookings}`,
+    `Gross revenue: ${formatCurrency(summary.totalGrossRevenue)}`,
+    `Collected online: ${formatCurrency(summary.totalCollectedRevenue)}`,
+    `Pending at property: ${formatCurrency(summary.totalPendingRevenue)}`,
+    `Cancellation deductions: ${formatCurrency(summary.totalDeductions)}`,
+    `Net collected: ${formatCurrency(summary.netCollectedRevenue)}`,
+    '',
+    'Booking records',
+    'Booking ID | Guest | Status | Collected | Deduction | Net | Check-in'
+  ];
+
+  entries.forEach((entry) => {
+    lines.push(
+      `${entry.bookingId} | ${entry.guestName} | ${entry.status} | ${formatCurrency(entry.collectedAmount)} | ${formatCurrency(entry.deductionAmount)} | ${formatCurrency(entry.netCollectedAmount)} | ${formatReportDate(entry.checkIn)}`
+    );
+
+    if (entry.pendingAmount > 0) {
+      lines.push(`Pending amount: ${formatCurrency(entry.pendingAmount)}`);
+    }
+
+    if (entry.cancellationReason) {
+      lines.push(`Reason: ${entry.cancellationReason}`);
+    }
+
+    lines.push('');
+  });
+
+  const pages = [];
+  for (let index = 0; index < lines.length; index += linesPerPage) {
+    pages.push(lines.slice(index, index + linesPerPage));
+  }
+
+  let objectIndex = 1;
+  const objects = [];
+
+  const addObject = (content) => {
+    const id = objectIndex++;
+    objects.push({ id, content });
+    return id;
+  };
+
+  const fontId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const pageIds = [];
+
+  const contentIds = pages.map((pageLines) => {
+    const commands = ['BT', `/F1 10 Tf`, `${marginLeft} ${pageHeight - marginTop} Td`];
+
+    pageLines.forEach((line, lineIndex) => {
+      const safeLine = sanitizePdfText(line);
+      if (lineIndex === 0) {
+        commands.push(`(${safeLine}) Tj`);
+      } else {
+        commands.push(`0 -${lineHeight} Td`);
+        commands.push(`(${safeLine}) Tj`);
+      }
+    });
+
+    commands.push('ET');
+    const stream = commands.join('\n');
+    return addObject(`<< /Length ${Buffer.byteLength(stream, 'utf8')} >>\nstream\n${stream}\nendstream`);
+  });
+
+  const pagesId = objectIndex++;
+
+  contentIds.forEach((contentId) => {
+    const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+    pageIds.push(pageId);
+  });
+
+  const pagesObject = {
+    id: pagesId,
+    content: `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] >>`
+  };
+
+  objects.push(pagesObject);
+  const catalogId = addObject(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+
+  objects.sort((a, b) => a.id - b.id);
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+
+  objects.forEach((object) => {
+    offsets[object.id] = Buffer.byteLength(pdf, 'utf8');
+    pdf += `${object.id} 0 obj\n${object.content}\nendobj\n`;
+  });
+
+  const xrefOffset = Buffer.byteLength(pdf, 'utf8');
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+
+  for (let id = 1; id <= objects.length; id += 1) {
+    pdf += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
+  }
+
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+  return Buffer.from(pdf, 'utf8');
+};
 
 // Create new booking (called after successful payment)
 export const createBooking = async (req, res) => {
@@ -30,6 +245,26 @@ export const createBooking = async (req, res) => {
       homestayName,
       homestayLocation
     } = req.body;
+
+    const availableRooms = await getAvailableRoomsForBooking({
+      homestayId,
+      checkIn,
+      checkOut
+    });
+
+    if (availableRooms === null) {
+      return res.json({
+        success: false,
+        message: 'Homestay not found'
+      });
+    }
+
+    if (Number(rooms || 0) > availableRooms) {
+      return res.json({
+        success: false,
+        message: `Only ${availableRooms} room(s) are available for the selected dates`
+      });
+    }
 
     // Check if booking already exists (prevent duplicates)
     const existingBooking = await Booking.findOne({ bookingId });
@@ -169,6 +404,68 @@ export const getHostBookings = async (req, res) => {
     return res.json({
       success: false,
       message: 'Failed to fetch bookings',
+      error: error.message
+    });
+  }
+};
+
+export const getHostRevenue = async (req, res) => {
+  try {
+    const { hostId } = req.params;
+
+    const bookings = await Booking.find({ hostId })
+      .populate('cancellation')
+      .sort({ createdAt: -1 });
+
+    const entries = buildRevenueEntries(bookings);
+    const summary = buildRevenueSummary(entries);
+
+    return res.json({
+      success: true,
+      summary,
+      entries
+    });
+  } catch (error) {
+    console.error('Get Host Revenue Error:', error);
+    return res.json({
+      success: false,
+      message: 'Failed to fetch host revenue',
+      error: error.message
+    });
+  }
+};
+
+export const downloadHostRevenueReport = async (req, res) => {
+  try {
+    const { hostId } = req.params;
+
+    const bookings = await Booking.find({ hostId })
+      .populate('cancellation')
+      .sort({ createdAt: -1 });
+
+    const entries = buildRevenueEntries(bookings);
+    const summary = buildRevenueSummary(entries);
+
+    const generatedAt = new Date();
+    const pdfBuffer = createPdfBuffer({
+      title: 'Host Revenue Report',
+      subtitle: `Generated on ${formatReportDate(generatedAt)}`,
+      summary,
+      entries
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="host-revenue-report-${hostId}-${generatedAt.toISOString().slice(0, 10)}.pdf"`
+    );
+
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Download Host Revenue Report Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to download revenue report',
       error: error.message
     });
   }
