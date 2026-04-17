@@ -5,6 +5,7 @@ import Navbar from "../../components/Navbar";
 import video1 from "../../assets/Videos/Tourism.mp4";
 import video2 from "../../assets/Videos/Tourism (1).mp4";
 import SmartRecommendation from '../../Features/SmartRecommendation';
+import { Toast, useToast } from '../../components/toast';
 
 const heroSlides = [
   {
@@ -31,6 +32,9 @@ export default function HomePage() {
   const [featuredStays, setFeaturedStays] = useState([]);
   const [loadingStays, setLoadingStays] = useState(true);
   const navigate = useNavigate();
+  const { toasts, toast, removeToast } = useToast();
+
+  const isLoggedIn = !!localStorage.getItem('user');
 
   // ─── Fetch featured stays from backend ───────────────────────────────────
   useEffect(() => {
@@ -39,12 +43,11 @@ export default function HomePage() {
         const res = await fetch('http://localhost:5000/api/homestay/approved');
         const data = await res.json();
         if (data.success) {
-  // Sort by rating descending, show top 3 only
-  const top3 = [...data.homestays]
-    .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
-    .slice(0, 3);
-  setFeaturedStays(top3);
-}
+          const top3 = [...data.homestays]
+            .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+            .slice(0, 3);
+          setFeaturedStays(top3);
+        }
       } catch (err) {
         console.error('Failed to fetch stays:', err);
       } finally {
@@ -78,9 +81,43 @@ export default function HomePage() {
     }, 800);
   };
 
+  const handleViewDetails = (stayId) => {
+    if (!isLoggedIn) {
+      toast.info('Login Required', 'Please login or register to explore homestays!');
+      setTimeout(() => navigate('/login', {
+        state: { from: '/homestayListings', message: 'Please login or register to explore homestays!' }
+      }), 1500);
+    } else {
+      navigate(`/homestay/${stayId}`);
+    }
+  };
+
+  const handleAIMatch = () => {
+    if (!isLoggedIn) {
+      toast.info('Login Required', 'Please login or register to find your perfect match!');
+      setTimeout(() => navigate('/login', {
+        state: { from: '/', message: 'Please login or register to find your perfect match!' }
+      }), 1500);
+    } else {
+      setShowQuestionnaire(true);
+    }
+  };
+
+  const handleExploreStays = () => {
+    if (!isLoggedIn) {
+      toast.info('Login Required', 'Please login or register to explore homestays!');
+      setTimeout(() => navigate('/login', {
+        state: { from: '/homestayListings', message: 'Please login or register to explore homestays!' }
+      }), 1500);
+    } else {
+      navigate('/homestayListings');
+    }
+  };
+
   return (
     <>
       <Navbar />
+      <Toast toasts={toasts} removeToast={removeToast} />
 
       <div className="app">
 
@@ -109,7 +146,9 @@ export default function HomePage() {
             <p className="hero-sub">Book local, authentic &amp; verified stays across Nepal</p>
             <p className="hero-tagline">{heroSlides[current].tagline}</p>
             <div className="hero-cta-row">
-              <button className="hero-explore-btn">Explore Stays</button>
+              <button className="hero-explore-btn" onClick={handleExploreStays}>
+                Explore Stays
+              </button>
             </div>
           </div>
 
@@ -137,7 +176,7 @@ export default function HomePage() {
         <div className="ai-float-trigger">
           <button
             className="ai-float-btn"
-            onClick={() => setShowQuestionnaire(true)}
+            onClick={handleAIMatch}
             aria-label="AI Recommendation"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">
@@ -153,7 +192,7 @@ export default function HomePage() {
         )}
 
         {/* ═══════════════════════════════════════
-            VIDEO SHOWCASE — refined cards
+            VIDEO SHOWCASE
         ═══════════════════════════════════════ */}
         <section className="video-section">
           <div className="video-section-inner">
@@ -184,7 +223,7 @@ export default function HomePage() {
         </section>
 
         {/* ═══════════════════════════════════════
-            FEATURED STAYS — from backend
+            FEATURED STAYS
         ═══════════════════════════════════════ */}
         <section className="featured">
           <div className="featured-header">
@@ -229,7 +268,7 @@ export default function HomePage() {
                       </div>
                       <button
                         className="btn-view"
-                        onClick={() => navigate(`/stays/${stay._id}`)}
+                        onClick={() => handleViewDetails(stay._id)}
                       >
                         View Details
                       </button>
