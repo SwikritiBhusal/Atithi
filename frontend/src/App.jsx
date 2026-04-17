@@ -21,6 +21,8 @@ import Payment from './Features/Payment';
 import PaymentVerify from './Features/PaymentVerify';
 import PaymentSuccess from './Features/Paymentsuccess';
 import UserBookings from './Features/userBooking';
+import PendingApproval from './Features/Hosts/PendingApproval'; 
+import ThemeToggle from './components/ThemeToggle';
 // Protected Routes
 import { AdminProtectedRoute, HostProtectedRoute } from './components/ProtectedRoute';
 import RecommendationResults from './Features/RecommendationResult';
@@ -32,6 +34,7 @@ function App() {
   const [count, setCount] = useState(0);
 
   return (
+    <>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path='/home' element={<HomePage/>}/>
@@ -56,6 +59,7 @@ function App() {
       <Route path="/homestay/:id" element={<HomestayDetails />} />
       <Route path="/homestay/:id/confirm" element={<BookingConfirmation />} />
       <Route path="/my-bookings" element={<UserBookings />} />
+      <Route path="/pending-approval" element={<PendingApproval />} />
 
       
         {/* Admin Protected Routes */}
@@ -91,6 +95,11 @@ function App() {
         {/* Catch all - redirect to home */}
         <Route path="*" element={<HomePage />} />
     </Routes>
+
+    <ThemeToggle />  
+    </> 
+
+    
   );
 }
 

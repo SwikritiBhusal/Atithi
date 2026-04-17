@@ -15,6 +15,7 @@ export default function HomestayDetails() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAvailability, setShowAvailability] = useState(false); // ← Added
+  const [availability, setAvailability] = useState(null);
   const [bookingData, setBookingData] = useState({
     checkIn: '',
     checkOut: '',
@@ -35,6 +36,35 @@ export default function HomestayDetails() {
     }
     fetchHomestayDetails();
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchAvailability = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (bookingData.checkIn && bookingData.checkOut) {
+          params.set('checkIn', bookingData.checkIn);
+          params.set('checkOut', bookingData.checkOut);
+        }
+
+        const query = params.toString();
+        const response = await fetch(
+          `http://localhost:5000/api/homestay/${id}/availability${query ? `?${query}` : ''}`,
+          { credentials: 'include' }
+        );
+        const result = await response.json();
+
+        if (result.success) {
+          setAvailability(result.availability);
+        }
+      } catch (error) {
+        console.error('Availability error:', error);
+      }
+    };
+
+    fetchAvailability();
+  }, [bookingData.checkIn, bookingData.checkOut, id]);
 
   const fetchHomestayDetails = async () => {
     try {
@@ -82,11 +112,16 @@ export default function HomestayDetails() {
     'Cultural Experience': <Shield size={18} />
   };
 
-  // ✅ CHANGE 1: getCrispImageUrl function added here
+
   const getCrispImageUrl = (url) => {
-    if (!url || !url.includes('cloudinary.com')) return url;
-    return url.replace('/upload/', '/upload/q_90,f_jpg,w_1600/');
-  };
+  if (!url || !url.includes('cloudinary.com')) return url;
+  return url.replace('/upload/', '/upload/q_auto:best,f_auto,w_1920,dpr_auto/');
+};
+
+const getThumbnailUrl = (url) => {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  return url.replace('/upload/', '/upload/q_auto:best,f_auto,w_300,h_200,c_fill/');
+};
 
   const nextImage = () => {
     if (homestay?.homestayPhotos?.length > 1) {
@@ -120,6 +155,28 @@ export default function HomestayDetails() {
     setBookingData(prev => ({ ...prev, [field]: value }));
   };
 
+  const currentAvailableRooms = availability?.availableRooms ?? homestay?.availableRooms ?? Math.max(
+    0,
+    Number(homestay?.rooms || 0) - Number(homestay?.blockedRooms || 0)
+  );
+
+  useEffect(() => {
+    if (currentAvailableRooms <= 0 && bookingData.rooms !== 0) {
+      setBookingData((prev) => ({
+        ...prev,
+        rooms: 0
+      }));
+      return;
+    }
+
+    if (currentAvailableRooms > 0 && (bookingData.rooms === 0 || bookingData.rooms > currentAvailableRooms)) {
+      setBookingData((prev) => ({
+        ...prev,
+        rooms: currentAvailableRooms
+      }));
+    }
+  }, [bookingData.rooms, currentAvailableRooms]);
+
   const calculateTotalPrice = () => {
     if (!bookingData.checkIn || !bookingData.checkOut) return 0;
     
@@ -144,9 +201,14 @@ export default function HomestayDetails() {
       alert('Check-out date must be after check-in date!');
       return;
     }
+
+    if (currentAvailableRooms <= 0 || bookingData.rooms <= 0) {
+      alert('No rooms are available for the selected dates.');
+      return;
+    }
     
-    if (bookingData.rooms > homestay.rooms) {
-      alert(`Only ${homestay.rooms} rooms available!`);
+    if (bookingData.rooms > currentAvailableRooms) {
+      alert(`Only ${currentAvailableRooms} room(s) are available for the selected dates!`);
       return;
     }
     
@@ -301,7 +363,7 @@ export default function HomestayDetails() {
                         onClick={() => setCurrentImageIndex(index)}
                       >
                         {/* ✅ CHANGE 3: getCrispImageUrl used on thumbnails */}
-                        <img src={getCrispImageUrl(photo.url)} alt={`Thumbnail ${index + 1}`} />
+                        <img src={getThumbnailUrl(photo.url)} alt={`Thumbnail ${index + 1}`} />
                       </div>
                     ))}
                   </div>
@@ -324,7 +386,7 @@ export default function HomestayDetails() {
                   <Home size={20} />
                   <div>
                     <span className="info-label">Rooms</span>
-                    <span className="info-value">{homestay.rooms} Available</span>
+                    <span className="info-value">{currentAvailableRooms} Available</span>
                   </div>
                 </div>
                 <div className="info-item">
@@ -622,12 +684,17 @@ export default function HomestayDetails() {
                         <select
                           value={bookingData.rooms}
                           onChange={(e) => handleBookingChange('rooms', parseInt(e.target.value))}
+                          disabled={currentAvailableRooms <= 0}
                         >
-                          {[...Array(homestay.rooms)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1} {i === 0 ? 'Room' : 'Rooms'}
-                            </option>
-                          ))}
+                          {currentAvailableRooms <= 0 ? (
+                            <option value={0}>No rooms available</option>
+                          ) : (
+                            [...Array(currentAvailableRooms)].map((_, i) => (
+                              <option key={i + 1} value={i + 1}>
+                                {i + 1} {i === 0 ? 'Room' : 'Rooms'}
+                              </option>
+                            ))
+                          )}
                         </select>
                       </div>
                       <div className="form-field">
@@ -645,6 +712,11 @@ export default function HomestayDetails() {
                       </div>
                     </div>
 
+                    <div className="availability-meta">
+                      <span>{currentAvailableRooms} room(s) available</span>
+                      {availability?.blockedRooms ? <span>{availability.blockedRooms} blocked by host</span> : null}
+                    </div>
+
                     {/* Price Breakdown */}
                     {bookingData.checkIn && bookingData.checkOut && (
                       <div className="price-breakdown">
@@ -659,7 +731,7 @@ export default function HomestayDetails() {
                       </div>
                     )}
 
-                    <button className="book-now-btn" onClick={handleBookNow}>
+                    <button className="book-now-btn" onClick={handleBookNow} disabled={currentAvailableRooms <= 0}>
                       Book Now
                     </button>
                   </div>
@@ -678,7 +750,7 @@ export default function HomestayDetails() {
                 <div className="booking-info">
                   <div className="booking-item">
                     <Home size={16} />
-                    <span>{homestay.rooms} rooms available</span>
+                    <span>{currentAvailableRooms} rooms available</span>
                   </div>
                   <div className="booking-item">
                     <Users size={16} />

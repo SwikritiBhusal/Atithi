@@ -2,10 +2,11 @@ import Homestay from '../models/homestayModel.js';
 import userModel from '../models/usermodel.js';
 import transporter from '../Config/nodeMailer.js';
 import Notification from '../models/notificationsModel.js';
-import HomestayEmbedding from '../models/homestayEmbeddingModel.js'; // ✅ ADDED
-import { generateEmbedding } from '../utils/aiHelper.js';             // ✅ ADDED
+import HomestayEmbedding from '../models/homestayEmbeddingModel.js'; 
+import { generateEmbedding } from '../utils/aiHelper.js';             
+import Booking from '../models/bookingModel.js';
 
-// ✅ ADDED — builds text from homestay for AI embedding
+// builds text from homestay for AI embedding
 function buildHomestayTextForEmbedding(homestay) {
   const parts = [
     homestay.homestayName,
@@ -23,6 +24,45 @@ function buildHomestayTextForEmbedding(homestay) {
     homestay.childrenAllowed ? 'family friendly children welcome kids' : '',
   ];
   return parts.filter(Boolean).join(' ').toLowerCase().trim();
+}
+
+function getOverlapQuery(checkIn, checkOut) {
+  return {
+    checkIn: { $lt: checkOut },
+    checkOut: { $gt: checkIn },
+    status: { $in: ['confirmed', 'completed'] }
+  };
+}
+
+async function getAvailabilitySnapshot(homestayId, checkIn = null, checkOut = null) {
+  const homestay = await Homestay.findById(homestayId);
+  if (!homestay) return null;
+
+  const totalRooms = Number(homestay.rooms || 0);
+  const blockedRooms = Math.max(0, Number(homestay.blockedRooms || 0));
+  let bookedRooms = 0;
+
+  if (checkIn && checkOut) {
+    const overlappingBookings = await Booking.find({
+      homestayId,
+      ...getOverlapQuery(checkIn, checkOut)
+    }).select('rooms');
+
+    bookedRooms = overlappingBookings.reduce(
+      (total, booking) => total + Number(booking.rooms || 0),
+      0
+    );
+  }
+
+  return {
+    homestay,
+    availability: {
+      totalRooms,
+      blockedRooms,
+      bookedRooms,
+      availableRooms: Math.max(0, totalRooms - blockedRooms - bookedRooms)
+    }
+  };
 }
 
 // Submit homestay for verification — UNCHANGED
@@ -181,6 +221,41 @@ export const getHomestayById = async (req, res) => {
   }
 };
 
+export const getHomestayAvailability = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { checkIn, checkOut } = req.query;
+
+    let parsedCheckIn = null;
+    let parsedCheckOut = null;
+
+    if (checkIn && checkOut) {
+      parsedCheckIn = new Date(checkIn);
+      parsedCheckOut = new Date(checkOut);
+
+      if (Number.isNaN(parsedCheckIn.getTime()) || Number.isNaN(parsedCheckOut.getTime())) {
+        return res.json({ success: false, message: 'Invalid date range' });
+      }
+
+      if (parsedCheckOut <= parsedCheckIn) {
+        return res.json({ success: false, message: 'Check-out must be after check-in' });
+      }
+    }
+
+    const snapshot = await getAvailabilitySnapshot(id, parsedCheckIn, parsedCheckOut);
+    if (!snapshot) {
+      return res.json({ success: false, message: 'Homestay not found' });
+    }
+
+    return res.json({
+      success: true,
+      availability: snapshot.availability
+    });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
 // Add or update a user review — UNCHANGED
 export const addReview = async (req, res) => {
   try {
@@ -266,7 +341,16 @@ export const getApprovedHomestays = async (req, res) => {
     const homestays = await Homestay.find({ status: 'approved' })
       .select('-citizenshipFiles -tourismRegistration -citizenshipNo -adminRemarks')
       .sort({ approvedAt: -1 });
-    return res.json({ success: true, homestays });
+
+    const homestaysWithAvailability = homestays.map((homestay) => ({
+      ...homestay.toObject(),
+      availableRooms: Math.max(
+        0,
+        Number(homestay.rooms || 0) - Number(homestay.blockedRooms || 0)
+      )
+    }));
+
+    return res.json({ success: true, homestays: homestaysWithAvailability });
   } catch (error) {
     return res.json({ success: false, message: error.message });
   }
@@ -405,7 +489,16 @@ export const getMyHomestay = async (req, res) => {
     if (!homestay) {
       return res.json({ success: false, message: 'No approved homestay found' });
     }
-    return res.json({ success: true, homestay });
+    return res.json({
+      success: true,
+      homestay: {
+        ...homestay.toObject(),
+        availableRooms: Math.max(
+          0,
+          Number(homestay.rooms || 0) - Number(homestay.blockedRooms || 0)
+        )
+      }
+    });
   } catch (error) {
     return res.json({ success: false, message: error.message });
   }
@@ -418,7 +511,7 @@ export const updateHomestay = async (req, res) => {
     const updateData = req.body;
     
     const allowedFields = [
-      'homestayName', 'description', 'rooms', 'guests', 'price',
+      'homestayName', 'description', 'rooms', 'blockedRooms', 'guests', 'price',
       'checkIn', 'checkOut', 'facilities', 'specialFeatures',
       'smokingAllowed', 'petsAllowed', 'childrenAllowed',
       'additionalRules', 'cancellationPolicy'
@@ -430,16 +523,54 @@ export const updateHomestay = async (req, res) => {
         filteredData[field] = updateData[field];
       }
     });
-    
+
+    ['rooms', 'blockedRooms', 'guests', 'price'].forEach(field => {
+      if (filteredData[field] !== undefined) {
+        filteredData[field] = Number(filteredData[field]);
+      }
+    });
+
+    ['facilities', 'specialFeatures'].forEach(field => {
+      if (typeof filteredData[field] === 'string') {
+        filteredData[field] = JSON.parse(filteredData[field]);
+      }
+    });
+
+    ['smokingAllowed', 'petsAllowed', 'childrenAllowed'].forEach(field => {
+      if (typeof filteredData[field] === 'string') {
+        filteredData[field] = filteredData[field] === 'true';
+      }
+    });
+
+    const existingHomestay = await Homestay.findById(id);
+    if (!existingHomestay) {
+      return res.json({ success: false, message: 'Homestay not found' });
+    }
+
+    const nextRooms = filteredData.rooms ?? Number(existingHomestay.rooms || 0);
+    const nextBlockedRooms = filteredData.blockedRooms ?? Number(existingHomestay.blockedRooms || 0);
+
+    if (nextBlockedRooms > nextRooms) {
+      return res.json({
+        success: false,
+        message: 'Blocked rooms cannot be more than total rooms'
+      });
+    }
+
+    const uploadedPhotos = req.files?.homestayPhotos?.map(file => ({
+      url: file.path,
+      public_id: file.filename
+    }));
+
+    if (uploadedPhotos?.length) {
+      filteredData.homestayPhotos = uploadedPhotos;
+    }
+
     const homestay = await Homestay.findByIdAndUpdate(
       id,
       filteredData,
       { new: true, runValidators: true }
     );
-    
-    if (!homestay) {
-      return res.json({ success: false, message: 'Homestay not found' });
-    }
     
     return res.json({ 
       success: true, 
@@ -451,7 +582,7 @@ export const updateHomestay = async (req, res) => {
   }
 };
 
-// ✅ ADDED — get unique facilities from approved homestays
+// get unique facilities from approved homestays
 // Used in SmartRecommendation Step 3
 export const getUniqueFacilities = async (req, res) => {
   try {
@@ -473,8 +604,8 @@ export const getUniqueFacilities = async (req, res) => {
   }
 };
 
-// ✅ ADDED — regenerate embeddings for all approved homestays
-// Run once via Postman: POST /api/homestay/regenerate-embeddings
+//  ADDED — regenerate embeddings for all approved homestays
+
 export const regenerateAllEmbeddings = async (req, res) => {
   try {
     const homestays = await Homestay.find({ status: 'approved' });
@@ -507,5 +638,37 @@ export const regenerateAllEmbeddings = async (req, res) => {
     });
   } catch (error) {
     return res.json({ success: false, message: error.message });
+  }
+};
+
+// ⭐ NEW: Check if user already has a homestay
+export const checkExistingHomestay = async (req, res) => {
+  try {
+    const { userId } = req.params;
+ 
+    const homestay = await Homestay.findOne({ hostUserId: userId });
+ 
+    if (homestay) {
+      return res.json({
+        success: true,
+        hasHomestay: true,
+        status: homestay.status, // pending, approved, rejected
+        homestayId: homestay._id,
+        homestayName: homestay.homestayName
+      });
+    }
+ 
+    return res.json({
+      success: true,
+      hasHomestay: false
+    });
+ 
+  } catch (error) {
+    console.error('Check existing homestay error:', error);
+    return res.json({
+      success: false,
+      message: 'Error checking homestay',
+      error: error.message
+    });
   }
 };

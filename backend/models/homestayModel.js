@@ -25,6 +25,7 @@ const homestaySchema = new mongoose.Schema({
   
   // Stay Information
   rooms: { type: Number, required: true },
+  blockedRooms: { type: Number, default: 0 },
   guests: Number,
   price: { type: Number, required: true },
   checkIn: String,

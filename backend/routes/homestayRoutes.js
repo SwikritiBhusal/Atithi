@@ -11,8 +11,9 @@ import {
   rejectHomestay,
   getApprovedHomestays,
   getMyHomestay,
+  getHomestayAvailability,
   updateHomestay,
-  addReview,getUniqueFacilities,regenerateAllEmbeddings
+  addReview,getUniqueFacilities,regenerateAllEmbeddings,checkExistingHomestay
 } from '../Controller/homestayController.js';
 
 const router = express.Router();
@@ -36,6 +37,9 @@ router.get('/pending', getPendingHomestays);
 // GET: Get approved homestays for public listings
 router.get('/approved', getApprovedHomestays);
 
+// GET: Get availability for selected dates
+router.get('/:id/availability', getHomestayAvailability);
+
 // approve/reject by admin
 router.put('/approve/:id', approveHomestay);
 router.put('/reject/:id', rejectHomestay);
@@ -52,9 +56,27 @@ router.get('/:id', getHomestayById);
 router.post('/:id/review', userAuth, addReview);
 
 // PUT: Update homestay (host edit)
-router.put('/update/:id', updateHomestay);
+router.put(
+  '/update/:id',
+  upload.fields([{ name: 'homestayPhotos', maxCount: 10 }]),
+  updateHomestay
+);
 
 router.post('/regenerate-embeddings', regenerateAllEmbeddings);
 
+router.get('/check-existing/:userId', checkExistingHomestay);
+
+// router.get('/status-by-email', async (req, res) => {
+//   try {
+//     const { email } = req.query;
+//     const homestay = await Homestay.findOne({ email }).sort({ createdAt: -1 });
+//     if (!homestay) {
+//       return res.json({ success: false, message: 'No homestay found' });
+//     }
+//     return res.json({ success: true, status: homestay.status });
+//   } catch (error) {
+//     return res.json({ success: false, message: error.message });
+//   }
+// });
 
 export default router;

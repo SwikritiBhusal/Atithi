@@ -9,6 +9,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import recommendationRoutes from './routes/recommendationRoutes.js';
 import notificationRoutes from "./routes/notificationRoutes.js";
+import adminRoutes from './routes/adminRoutes.js';
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 export default app;
