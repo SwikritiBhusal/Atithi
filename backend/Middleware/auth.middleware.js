@@ -20,7 +20,7 @@ const userAuth = async (req, res, next) => {
       });
     }
 
-    req.user = { id: decoded.id }; //  CORRECT
+    req.user = { id: decoded.id, role: decoded.role };
     next();
 
   } catch (error) {

@@ -193,11 +193,25 @@ export default function Navbar() {
           )}
 
           {/* Add Your Stay button for tourists/not logged in */}
-          {(!isLoggedIn || userRole === 'tourist') && (
-            <button className="btn-add-stay" onClick={() => navigate("/HomestayForm")}>
-              + Add Your Stay
-            </button>
-          )}
+         {(!isLoggedIn || userRole === 'tourist') && (
+  <button
+    className="btn-add-stay"
+    onClick={() => {
+      if (!isLoggedIn) {
+        navigate('/login', { 
+          state: { 
+            from: '/HomestayForm',
+            message: 'Please login or register first to add your homestay!' 
+          } 
+        });
+      } else {
+        navigate('/HomestayForm');
+      }
+    }}
+  >
+    + Add Your Stay
+  </button>
+)}
 
           <div className="nav-buttons">
             {isLoggedIn && (
