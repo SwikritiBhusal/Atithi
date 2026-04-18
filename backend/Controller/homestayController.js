@@ -5,6 +5,7 @@ import Notification from '../models/notificationsModel.js';
 import HomestayEmbedding from '../models/homestayEmbeddingModel.js'; 
 import { generateEmbedding } from '../utils/aiHelper.js';             
 import Booking from '../models/bookingModel.js';
+import cloudinary from '../Config/cloudinary.js';
 
 // builds text from homestay for AI embedding
 function buildHomestayTextForEmbedding(homestay) {
@@ -557,13 +558,93 @@ export const updateHomestay = async (req, res) => {
       });
     }
 
-    const uploadedPhotos = req.files?.homestayPhotos?.map(file => ({
+    const rawUploadedPhotos = req.files?.homestayPhotos || [];
+    const PHOTO_MIN_BYTES = 100 * 1024;
+    const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+    const allowedPhotoExt = ['jpg', 'jpeg', 'png', 'webp'];
+    const cleanupUploadedPhotos = async () => {
+      await Promise.allSettled(
+        rawUploadedPhotos
+          .map((item) => item?.filename)
+          .filter(Boolean)
+          .map((publicId) => cloudinary.uploader.destroy(publicId))
+      );
+    };
+
+    for (const file of rawUploadedPhotos) {
+      const ext = file?.originalname?.split('.').pop()?.toLowerCase();
+      const fileSize = Number(file?.size || file?.bytes || 0);
+
+      if (!allowedPhotoExt.includes(ext)) {
+        await cleanupUploadedPhotos();
+        return res.json({ success: false, message: `Only JPG, PNG, WEBP allowed (got .${ext || 'unknown'})` });
+      }
+
+      if (fileSize < PHOTO_MIN_BYTES) {
+        await cleanupUploadedPhotos();
+        return res.json({ success: false, message: 'Photo too small (min 100KB).' });
+      }
+
+      if (fileSize > PHOTO_MAX_BYTES) {
+        await cleanupUploadedPhotos();
+        return res.json({ success: false, message: 'Photo too large (max 8MB).' });
+      }
+    }
+
+    const uploadedPhotos = rawUploadedPhotos.map(file => ({
       url: file.path,
       public_id: file.filename
     }));
 
     if (uploadedPhotos?.length) {
-      filteredData.homestayPhotos = uploadedPhotos;
+      let replacePhotoIndices = [];
+
+      if (typeof req.body.replacePhotoIndices === 'string' && req.body.replacePhotoIndices.trim()) {
+        try {
+          const parsed = JSON.parse(req.body.replacePhotoIndices);
+          replacePhotoIndices = Array.isArray(parsed) ? parsed.map((value) => Number(value)) : [];
+        } catch (error) {
+          return res.json({ success: false, message: 'Invalid photo replacement data' });
+        }
+      }
+
+      if (replacePhotoIndices.length > 0) {
+        if (replacePhotoIndices.length !== uploadedPhotos.length) {
+          return res.json({ success: false, message: 'Photo replacement data mismatch' });
+        }
+
+        const currentPhotos = Array.isArray(existingHomestay.homestayPhotos)
+          ? [...existingHomestay.homestayPhotos]
+          : [];
+
+        for (let i = 0; i < replacePhotoIndices.length; i += 1) {
+          const index = replacePhotoIndices[i];
+          if (!Number.isInteger(index) || index < 0 || index >= currentPhotos.length) {
+            return res.json({ success: false, message: 'Invalid photo replacement index' });
+          }
+
+          const oldPublicId = currentPhotos[index]?.public_id;
+          if (oldPublicId) {
+            await cloudinary.uploader.destroy(oldPublicId);
+          }
+
+          currentPhotos[index] = uploadedPhotos[i];
+        }
+
+        filteredData.homestayPhotos = currentPhotos;
+      } else {
+        const oldPublicIds = (existingHomestay.homestayPhotos || [])
+          .map((photo) => photo?.public_id)
+          .filter(Boolean);
+
+        if (oldPublicIds.length) {
+          await Promise.allSettled(
+            oldPublicIds.map((publicId) => cloudinary.uploader.destroy(publicId))
+          );
+        }
+
+        filteredData.homestayPhotos = uploadedPhotos;
+      }
     }
 
     const homestay = await Homestay.findByIdAndUpdate(

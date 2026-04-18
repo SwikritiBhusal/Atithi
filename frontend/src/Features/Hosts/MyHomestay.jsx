@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Edit2,
   Save,
@@ -8,32 +8,53 @@ import {
   Users,
   DollarSign,
   Star,
-  Upload,
   Ban
 } from 'lucide-react';
 import './MyHomestay.css';
+import { useAppToast } from '../../components/toast';
+
+const PHOTO_MIN_MB = 0.1;
+const PHOTO_MAX_MB = 8;
+const toMB = (bytes) => bytes / (1024 * 1024);
+
+const validateReplacementPhoto = (file) => {
+  if (!file) return 'No photo selected.';
+
+  const mb = toMB(file.size);
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowed = ['jpg', 'jpeg', 'png', 'webp'];
+
+  if (!allowed.includes(ext)) return `Only JPG, PNG, WEBP allowed (got .${ext})`;
+  if (mb < PHOTO_MIN_MB) return `Photo too small (min ${PHOTO_MIN_MB * 1000}KB).`;
+  if (mb > PHOTO_MAX_MB) return `Photo too large (max ${PHOTO_MAX_MB}MB). Got ${mb.toFixed(1)}MB`;
+  return '';
+};
 
 export default function MyHomestay() {
+  const toast = useAppToast();
   const [homestay, setHomestay] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
-  const [newPhotos, setNewPhotos] = useState([]);
+  const [photoReplacements, setPhotoReplacements] = useState({});
+  const [replaceTargetIndex, setReplaceTargetIndex] = useState(null);
+  const replaceInputRef = useRef(null);
 
   useEffect(() => {
     fetchMyHomestay();
   }, []);
 
   const previewPhotos = useMemo(() => {
-    if (editing && newPhotos.length > 0) {
-      return newPhotos.map((photo) => ({
-        url: URL.createObjectURL(photo)
-      }));
-    }
+    const basePhotos = homestay?.homestayPhotos || [];
+    if (!editing) return basePhotos;
 
-    return homestay?.homestayPhotos || [];
-  }, [editing, homestay, newPhotos]);
+    return basePhotos.map((photo, index) => {
+      const replacement = photoReplacements[index];
+      if (!replacement) return photo;
+      return { ...photo, url: URL.createObjectURL(replacement) };
+    });
+  }, [editing, homestay, photoReplacements]);
 
   useEffect(() => {
     return () => {
@@ -67,13 +88,15 @@ export default function MyHomestay() {
   const handleEdit = () => {
     setEditing(true);
     setEditData({ ...homestay });
-    setNewPhotos([]);
+    setPhotoReplacements({});
+    setReplaceTargetIndex(null);
   };
 
   const handleCancel = () => {
     setEditing(false);
     setEditData({ ...homestay });
-    setNewPhotos([]);
+    setPhotoReplacements({});
+    setReplaceTargetIndex(null);
   };
 
   const handleChange = (field, value) => {
@@ -89,8 +112,30 @@ export default function MyHomestay() {
     }));
   };
 
-  const handlePhotoSelection = (files) => {
-    setNewPhotos(Array.from(files || []));
+  const handlePhotoSelection = (fileList) => {
+    const file = fileList?.[0];
+    if (replaceTargetIndex === null || !file) return;
+
+    const photoError = validateReplacementPhoto(file);
+    if (photoError) {
+      toast.error('Invalid Photo', photoError);
+      setReplaceTargetIndex(null);
+      return;
+    }
+
+    setPhotoReplacements((prev) => ({
+      ...prev,
+      [replaceTargetIndex]: file
+    }));
+    setReplaceTargetIndex(null);
+  };
+
+  const openReplacePhotoPicker = (index) => {
+    setReplaceTargetIndex(index);
+    if (replaceInputRef.current) {
+      replaceInputRef.current.value = '';
+      replaceInputRef.current.click();
+    }
   };
 
   const handleSave = async () => {
@@ -107,9 +152,14 @@ export default function MyHomestay() {
       formData.append('checkOut', editData.checkOut || '');
       formData.append('facilities', JSON.stringify(editData.facilities || []));
 
-      newPhotos.forEach((photo) => {
-        formData.append('homestayPhotos', photo);
+      const replacementEntries = Object.entries(photoReplacements)
+        .map(([index, file]) => ({ index: Number(index), file }))
+        .sort((a, b) => a.index - b.index);
+
+      replacementEntries.forEach((entry) => {
+        formData.append('homestayPhotos', entry.file);
       });
+      formData.append('replacePhotoIndices', JSON.stringify(replacementEntries.map((entry) => entry.index)));
 
       const response = await fetch(`http://localhost:5000/api/homestay/update/${homestay._id}`, {
         method: 'PUT',
@@ -120,17 +170,18 @@ export default function MyHomestay() {
       const result = await response.json();
 
       if (result.success) {
-        alert('Homestay updated successfully!');
+        toast.success('Homestay Updated', 'Homestay updated successfully.');
         setHomestay(result.homestay);
         setEditData(result.homestay);
         setEditing(false);
-        setNewPhotos([]);
+        setPhotoReplacements({});
+        setReplaceTargetIndex(null);
       } else {
-        alert(`Failed to update: ${result.message}`);
+        toast.error('Update Failed', `Failed to update: ${result.message}`);
       }
     } catch (error) {
       console.error('Error updating:', error);
-      alert('Failed to update homestay');
+      toast.error('Update Failed', 'Failed to update homestay.');
     } finally {
       setSaving(false);
     }
@@ -400,17 +451,17 @@ export default function MyHomestay() {
           <h3 className="mh-section-title">Photos ({previewPhotos.length || 0})</h3>
           {editing && (
             <div className="mh-photo-upload">
-              <label className="mh-upload-box">
-                <Upload size={20} />
-                <span>{newPhotos.length ? `${newPhotos.length} new photo(s) selected` : 'Choose new photos to replace your current gallery'}</span>
-                <small>Selecting photos will replace the existing gallery across details and listing pages.</small>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handlePhotoSelection(e.target.files)}
-                />
-              </label>
+              <p className="mh-photo-help">
+                Click the replace button on each photo you want to change.
+                Replaced photos: {Object.keys(photoReplacements).length}. JPG/PNG/WEBP only, 100KB to 8MB each.
+              </p>
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept="image/jpg,image/jpeg,image/png,image/webp"
+                onChange={(e) => handlePhotoSelection(e.target.files)}
+                style={{ display: 'none' }}
+              />
             </div>
           )}
           <div className="mh-photos-grid">
@@ -418,6 +469,32 @@ export default function MyHomestay() {
               <div key={index} className="mh-photo">
                 <img src={photo.url} alt={`Photo ${index + 1}`} />
                 <span className="mh-photo-number">{index + 1}</span>
+                {editing && (
+                  <div className="mh-photo-edit-actions">
+                    <button
+                      type="button"
+                      className="mh-photo-replace-btn"
+                      onClick={() => openReplacePhotoPicker(index)}
+                    >
+                      Replace
+                    </button>
+                    {photoReplacements[index] && (
+                      <button
+                        type="button"
+                        className="mh-photo-undo-btn"
+                        onClick={() => {
+                          setPhotoReplacements((prev) => {
+                            const updated = { ...prev };
+                            delete updated[index];
+                            return updated;
+                          });
+                        }}
+                      >
+                        Undo
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
