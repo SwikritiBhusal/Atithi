@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Edit2, Save, X, Mail, User as UserIcon, Lock, Phone } from 'lucide-react';
+import { useAppToast } from '../../components/toast';
 import './HostProfile.css';
 
 export default function HostProfile() {
+  const toast = useAppToast();
   const [user, setUser] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -70,13 +72,13 @@ export default function HostProfile() {
         setUser(updatedUser);
         setEditing(false);
         window.dispatchEvent(new Event('storage'));
-        alert('✅ Profile updated successfully!');
+        toast.success('Profile Updated', 'Profile updated successfully.');
       } else {
-        alert('Failed to update: ' + result.message);
+        toast.error('Update Failed', 'Failed to update: ' + result.message);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to update profile');
+      toast.error('Update Failed', 'Failed to update profile.');
     } finally {
       setSaving(false);
     }
@@ -84,12 +86,12 @@ export default function HostProfile() {
 
   const handlePasswordUpdate = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('New passwords do not match!');
+      toast.warning('Password Mismatch', 'New passwords do not match.');
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      alert('Password must be at least 6 characters!');
+      toast.warning('Weak Password', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -109,7 +111,7 @@ export default function HostProfile() {
       const result = await response.json();
       
       if (result.success) {
-        alert('✅ Password changed successfully!');
+        toast.success('Password Updated', 'Password changed successfully.');
         setChangingPassword(false);
         setPasswordData({
           currentPassword: '',
@@ -117,11 +119,11 @@ export default function HostProfile() {
           confirmPassword: ''
         });
       } else {
-        alert('Failed to change password: ' + result.message);
+        toast.error('Password Update Failed', 'Failed to change password: ' + result.message);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to change password');
+      toast.error('Password Update Failed', 'Failed to change password.');
     } finally {
       setSaving(false);
     }

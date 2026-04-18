@@ -8,6 +8,7 @@
 //   Loader
 // } from 'lucide-react';
 // import Navbar from '../components/Navbar';
+import { useAppToast } from '../components/toast';
 // import './Payment.css';
 
 // export default function KhaltiPayment() {
@@ -32,13 +33,13 @@
 //   useEffect(() => {
 //     // Check if all required data exists
 //     if (!homestay || !bookingData || !user) {
-//       alert('Payment data missing!');
+//       toast.error('Missing Payment Data', 'Payment data missing.');
 //       navigate('/homestayListings');
 //     }
 
 //     // Check if we're in development mode
 //     checkMockMode();
-//   }, [homestay, bookingData, user, navigate]);
+//   }, [homestay, bookingData, user, navigate, toast]);
 
 //   const checkMockMode = async () => {
 //     try {
@@ -431,6 +432,7 @@ import './Payment.css';
 export default function KhaltiPayment() {
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -447,10 +449,10 @@ export default function KhaltiPayment() {
 
   useEffect(() => {
     if (!homestay || !bookingData || !user) {
-      alert('Payment data missing!');
+      toast.error('Missing Payment Data', 'Payment data missing.');
       navigate('/homestayListings');
     }
-  }, [homestay, bookingData, user, navigate]);
+  }, [homestay, bookingData, user, navigate, toast]);
 
   const initiatePayment = async () => {
     setLoading(true);

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight, ChevronLeft, X, Check, Search } from 'lucide-react';
+import { useAppToast } from '../components/toast';
 import './SmartRecommendation.css';
 
 export default function SmartRecommendation({ onClose }) {
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [mustHaveOptions, setMustHaveOptions] = useState([]);
@@ -81,11 +83,11 @@ export default function SmartRecommendation({ onClose }) {
           state: { recommendations: result.recommendations, preferences, historyId: result.historyId }
         });
       } else {
-        alert(result.message || 'Failed to get recommendations');
+        toast.error('Recommendation Failed', result.message || 'Failed to get recommendations');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to get recommendations');
+      toast.error('Recommendation Failed', 'Failed to get recommendations');
     } finally {
       setLoading(false);
     }

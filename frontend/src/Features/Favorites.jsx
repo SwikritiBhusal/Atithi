@@ -2,23 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, Home, Star, Coffee, Wifi, Mountain, Heart } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { useAppToast } from '../components/toast';
 import './homestayListings.css';
 
 export default function Favorites() {
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
-      alert('🔒 Please login to view your favorite homestays!');
+      toast.warning('Login Required', 'Please login to view your favorite homestays.');
       navigate('/login', { state: { from: '/favorites' } });
       return;
     }
 
     fetchFavorites();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const fetchFavorites = async () => {
     try {

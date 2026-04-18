@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import './Toast.css';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import './toast.css';
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
 const icons = {
@@ -54,24 +54,48 @@ function ToastItem({ toast, onRemove }) {
 }
 
 // Custom hook — use this in any component
+const noopToast = {
+  success: () => {},
+  error: () => {},
+  warning: () => {},
+  info: () => {}
+};
+
+const ToastContext = createContext(noopToast);
+
+export function ToastProvider({ children }) {
+  const { toasts, toast, removeToast } = useToast();
+
+  return (
+    <ToastContext.Provider value={toast}>
+      {children}
+      <Toast toasts={toasts} removeToast={removeToast} />
+    </ToastContext.Provider>
+  );
+}
+
+export function useAppToast() {
+  return useContext(ToastContext);
+}
+
 export function useToast() {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = (type, title, message = '', duration = 3500) => {
+  const addToast = useCallback((type, title, message = '', duration = 3500) => {
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, type, title, message, duration }]);
-  };
+  }, []);
 
-  const removeToast = (id) => {
+  const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  }, []);
 
-  const toast = {
+  const toast = useMemo(() => ({
     success: (title, message, duration) => addToast('success', title, message, duration),
     error:   (title, message, duration) => addToast('error',   title, message, duration),
     warning: (title, message, duration) => addToast('warning', title, message, duration),
     info:    (title, message, duration) => addToast('info',    title, message, duration),
-  };
+  }), [addToast]);
 
   return { toasts, toast, removeToast };
 }

@@ -22,6 +22,7 @@ import {
 import AdminProfile from './AdminProfile';
 import AdminHomestays from './homestays';
 import AdminUsers from './UsersManagement';
+import { useAppToast } from '../../components/toast';
 
 const formatCurrency = (amount = 0) => `NPR ${Number(amount || 0).toLocaleString()}`;
 
@@ -48,6 +49,7 @@ const ChartCard = ({ title, subtitle, children }) => (
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
@@ -63,13 +65,13 @@ export default function AdminDashboard() {
 
     const userData = JSON.parse(userStr);
     if (userData.role !== 'admin') {
-      alert('Access denied! Admins only.');
+      toast.error('Access Denied', 'Admins only.');
       navigate('/');
       return;
     }
 
     setUser(userData);
-  }, [navigate]);
+  }, [navigate, toast]);
 
   useEffect(() => {
     if (activeTab === 'overview' && user) {

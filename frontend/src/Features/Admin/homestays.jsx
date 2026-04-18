@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Check, X, Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Home } from 'lucide-react';
+import { useAppToast } from '../../components/toast';
 import './homestays.css';
 
 export default function AdminHomestays() {
+  const toast = useAppToast();
   const [homestays, setHomestays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -50,16 +52,16 @@ export default function AdminHomestays() {
       });
       const result = await response.json();
       if (result.success) {
-        alert('Homestay approved! Host credentials sent to email.');
+        toast.success('Homestay Approved', 'Host credentials were sent to email.');
         setSelectedHomestay(null);
         setRemarks('');
         fetchHomestays(); // Refresh list
       } else {
-        alert(result.message || 'Failed to approve!');
+        toast.error('Approve Failed', result.message || 'Failed to approve.');
       }
     } catch (error) {
       console.error(error);
-      alert('Something went wrong!');
+      toast.error('Request Failed', 'Something went wrong.');
     } finally {
       setActionLoading(false);
     }
@@ -68,7 +70,7 @@ export default function AdminHomestays() {
   // Reject homestay
   const handleReject = async (id) => {
     if (!remarks.trim()) {
-      alert('Please provide a reason for rejection!');
+      toast.warning('Remarks Required', 'Please provide a reason for rejection.');
       return;
     }
     setActionLoading(true);
@@ -81,16 +83,16 @@ export default function AdminHomestays() {
       });
       const result = await response.json();
       if (result.success) {
-        alert('Homestay rejected!');
+        toast.success('Homestay Rejected', 'Homestay rejected successfully.');
         setSelectedHomestay(null);
         setRemarks('');
         fetchHomestays();
       } else {
-        alert(result.message || 'Failed to reject!');
+        toast.error('Reject Failed', result.message || 'Failed to reject.');
       }
     } catch (error) {
       console.error(error);
-      alert('Something went wrong!');
+      toast.error('Request Failed', 'Something went wrong.');
     } finally {
       setActionLoading(false);
     }

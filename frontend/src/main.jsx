@@ -30,14 +30,17 @@ import App from './App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './components/toast';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <ThemeProvider>
-      <NotificationProvider>
-        <App />
-      </NotificationProvider>
+      <ToastProvider>
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
+      </ToastProvider>
     </ThemeProvider>
   </BrowserRouter>
 );

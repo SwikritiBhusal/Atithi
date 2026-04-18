@@ -14,10 +14,12 @@ import {
   Info
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { useAppToast } from '../components/toast';
 import './userBooking.css';
 
 export default function UserBookings() {
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -31,7 +33,7 @@ export default function UserBookings() {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
       sessionStorage.setItem('redirectAfterLogin', '/my-bookings');
-      alert('Please login to view your bookings');
+      toast.warning('Login Required', 'Please login to view your bookings.');
       navigate('/login');
       return;
     }
@@ -40,7 +42,7 @@ export default function UserBookings() {
     setUser(userData);
     
     fetchBookings(userData.id);
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const fetchBookings = async (userId) => {
     try {
@@ -81,17 +83,21 @@ export default function UserBookings() {
       const result = await response.json();
 
       if (result.success) {
-        alert(`✅ ${result.info.title}\n\n${result.info.message}\n\n⏰ ${result.info.refundTimeline}`);
+        toast.success(
+          result.info.title || 'Booking Cancelled',
+          `${result.info.message} ${result.info.refundTimeline ? `(${result.info.refundTimeline})` : ''}`.trim(),
+          6000
+        );
         
         fetchBookings(user.id);
         setCancellingBookingId(null);
         setCancellationReason('');
       } else {
-        alert('❌ ' + (result.message || 'Failed to cancel booking'));
+        toast.error('Cancellation Failed', result.message || 'Failed to cancel booking');
       }
     } catch (error) {
       console.error('Cancel booking error:', error);
-      alert('❌ Failed to cancel booking');
+      toast.error('Cancellation Failed', 'Failed to cancel booking');
     }
   };
 

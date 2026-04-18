@@ -6,11 +6,13 @@ import {
   Phone, Mail, User, Star
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { useAppToast } from '../components/toast';
 import './homestayDetails.css';
 
 export default function HomestayDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [homestay, setHomestay] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -91,12 +93,12 @@ export default function HomestayDetails() {
           }
         }
       } else {
-        alert('Homestay not found!');
+        toast.error('Not Found', 'Homestay not found.');
         navigate('/homestays');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to load homestay details');
+      toast.error('Load Failed', 'Failed to load homestay details.');
       navigate('/homestays');
     } finally {
       setLoading(false);
@@ -191,24 +193,24 @@ const getThumbnailUrl = (url) => {
 
   const handleBookNow = () => {
     if (!bookingData.checkIn || !bookingData.checkOut) {
-      alert('Please select check-in and check-out dates!');
+      toast.warning('Dates Required', 'Please select check-in and check-out dates.');
       return;
     }
     
     const nights = Math.ceil((new Date(bookingData.checkOut) - new Date(bookingData.checkIn)) / (1000 * 60 * 60 * 24));
     
     if (nights <= 0) {
-      alert('Check-out date must be after check-in date!');
+      toast.warning('Invalid Dates', 'Check-out date must be after check-in date.');
       return;
     }
 
     if (currentAvailableRooms <= 0 || bookingData.rooms <= 0) {
-      alert('No rooms are available for the selected dates.');
+      toast.warning('No Availability', 'No rooms are available for the selected dates.');
       return;
     }
     
     if (bookingData.rooms > currentAvailableRooms) {
-      alert(`Only ${currentAvailableRooms} room(s) are available for the selected dates!`);
+      toast.warning('Limited Availability', `Only ${currentAvailableRooms} room(s) are available for the selected dates.`);
       return;
     }
     
@@ -225,12 +227,12 @@ const getThumbnailUrl = (url) => {
 
   const handleReviewSubmit = async () => {
     if (!userId) {
-      alert('Please login to submit a review.');
+      toast.info('Login Required', 'Please login to submit a review.');
       return;
     }
 
     if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
-      alert('Please provide a rating between 1 and 5.');
+      toast.warning('Rating Required', 'Please provide a rating between 1 and 5.');
       return;
     }
 
@@ -250,13 +252,13 @@ const getThumbnailUrl = (url) => {
       if (result.success && result.homestay) {
         setHomestay(result.homestay);
         setReviewComment('');
-        alert('Your review has been saved!');
+        toast.success('Review Saved', 'Your review has been saved.');
       } else {
-        alert(result.message || 'Could not submit review.');
+        toast.error('Review Failed', result.message || 'Could not submit review.');
       }
     } catch (error) {
       console.error('Review submit error:', error);
-      alert('Something went wrong while submitting your review.');
+      toast.error('Review Failed', 'Something went wrong while submitting your review.');
     } finally {
       setIsSubmittingReview(false);
     }

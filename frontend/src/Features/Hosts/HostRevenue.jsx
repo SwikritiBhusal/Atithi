@@ -10,6 +10,7 @@ import {
   XCircle
 } from 'lucide-react';
 import './HostRevenue.css';
+import { useAppToast } from '../../components/toast';
 
 const formatCurrency = (amount = 0) => `NPR ${Number(amount || 0).toLocaleString()}`;
 
@@ -24,6 +25,7 @@ const formatDate = (value) => {
 };
 
 export default function HostRevenue() {
+  const toast = useAppToast();
   const [summary, setSummary] = useState(null);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export default function HostRevenue() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading revenue report:', error);
-      alert('Unable to download the revenue report right now.');
+      toast.error('Download Failed', 'Unable to download the revenue report right now.');
     } finally {
       setDownloading(false);
     }

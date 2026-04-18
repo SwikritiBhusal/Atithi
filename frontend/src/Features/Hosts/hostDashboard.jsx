@@ -8,9 +8,11 @@ import Logo from "../../assets/images/atithi-high-resolution-logo.png";
 import HostBookings from './hostBookings';
 import HostProfile from './HostProfile';
 import HostRevenue from './HostRevenue';
+import { useAppToast } from '../../components/toast';
 
 export default function HostDashboard() {
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [activeTab, setActiveTab] = useState('homestay');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
@@ -24,13 +26,13 @@ export default function HostDashboard() {
     
     const userData = JSON.parse(userStr);
     if (userData.role !== 'host') {
-      alert('Access denied! Hosts only.');
+      toast.error('Access Denied', 'Hosts only.');
       navigate('/');
       return;
     }
     
     setUser(userData);
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleLogout = async () => {
     try {

@@ -12,11 +12,13 @@ import {
   Info
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { useAppToast } from '../components/toast';
 import './BookingConfirmation.css';
 
 export default function BookingConfirmation() {
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [user, setUser] = useState(null);
   const [paymentOption, setPaymentOption] = useState('full'); // 'advance' or 'full'
 
@@ -27,7 +29,7 @@ export default function BookingConfirmation() {
     // Check if user is logged in
     const userStr = localStorage.getItem('user');
     if (!userStr) {
-      alert('Please login to complete booking');
+      toast.warning('Login Required', 'Please login to complete booking');
       navigate('/login');
       return;
     }
@@ -36,10 +38,10 @@ export default function BookingConfirmation() {
 
     // Check if booking data exists
     if (!homestay || !bookingData) {
-      alert('Booking data not found!');
+      toast.error('Missing Booking Data', 'Booking data not found.');
       navigate('/homestayListings');
     }
-  }, [navigate, homestay, bookingData]);
+  }, [navigate, homestay, bookingData, toast]);
 
   if (!homestay || !bookingData) {
     return (

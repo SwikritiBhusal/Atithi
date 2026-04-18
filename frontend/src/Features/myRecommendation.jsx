@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Calendar, Trash2, Bookmark, Search, Filter } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { useAppToast } from '../components/toast';
 import './myRecommendation.css';
 
 export default function MyRecommendations() {
   const navigate = useNavigate();
+  const toast = useAppToast();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, saved
@@ -14,7 +16,7 @@ export default function MyRecommendations() {
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
-      alert('Please login to view your recommendations');
+      toast.warning('Login Required', 'Please login to view your recommendations.');
       navigate('/login');
       return;
     }
@@ -22,7 +24,7 @@ export default function MyRecommendations() {
     const userData = JSON.parse(userStr);
     setUser(userData);
     fetchHistory();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const fetchHistory = async () => {
     try {

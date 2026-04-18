@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 
 import './hostBookings.css';
+import { useAppToast } from '../../components/toast';
 
 export default function HostBookings() {
+  const toast = useAppToast();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -71,18 +73,18 @@ export default function HostBookings() {
       const result = await response.json();
 
       if (result.success) {
-        alert('Booking deleted successfully.');
+        toast.success('Booking Deleted', 'Booking deleted successfully.');
         addNotification({
           title: 'Booking canceled',
           message: `Booking ${bookingRef} was canceled and removed from your list.`,
         });
         fetchBookings(); // Refresh list
       } else {
-        alert('Failed to delete booking');
+        toast.error('Delete Failed', 'Failed to delete booking.');
       }
     } catch (error) {
       console.error('Error deleting booking:', error);
-      alert('Error deleting booking');
+      toast.error('Delete Failed', 'Error deleting booking.');
     } finally {
       setProcessingId(null);
     }
