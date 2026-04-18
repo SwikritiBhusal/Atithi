@@ -5,6 +5,7 @@ import Cancellation from '../models/cancellationModel.js';
 import Notification from "../models/notificationsModel.js";
 import { sendBookingConfirmationEmail } from '../utils/emailService.js';
 import Homestay from '../models/homestayModel.js';
+import { autoCompletePastCheckoutBookings } from '../utils/bookingStatusUpdater.js';
 
 const formatCurrency = (amount = 0) => `NPR ${Number(amount || 0).toLocaleString()}`;
 
@@ -362,6 +363,7 @@ export const createBooking = async (req, res) => {
 export const getUserBookings = async (req, res) => {
   try {
     const { userId } = req.params;
+    await autoCompletePastCheckoutBookings();
 
     const bookings = await Booking.find({ userId })
       .populate('homestayId', 'homestayName homestayPhotos province district')
@@ -387,6 +389,7 @@ export const getUserBookings = async (req, res) => {
 export const getHostBookings = async (req, res) => {
   try {
     const { hostId } = req.params;
+    await autoCompletePastCheckoutBookings();
 
     const bookings = await Booking.find({ hostId })
       .populate('userId', 'username email contactNumber')
@@ -412,6 +415,7 @@ export const getHostBookings = async (req, res) => {
 export const getHostRevenue = async (req, res) => {
   try {
     const { hostId } = req.params;
+    await autoCompletePastCheckoutBookings();
 
     const bookings = await Booking.find({ hostId })
       .populate('cancellation')
@@ -438,6 +442,7 @@ export const getHostRevenue = async (req, res) => {
 export const downloadHostRevenueReport = async (req, res) => {
   try {
     const { hostId } = req.params;
+    await autoCompletePastCheckoutBookings();
 
     const bookings = await Booking.find({ hostId })
       .populate('cancellation')
@@ -515,6 +520,7 @@ export const updateBookingStatus = async (req, res) => {
 export const getBookingDetails = async (req, res) => {
   try {
     const { bookingId } = req.params;
+    await autoCompletePastCheckoutBookings();
 
     const booking = await Booking.findOne({ bookingId })
       .populate('userId', 'username email contactNumber')

@@ -1,6 +1,7 @@
 import Booking from '../models/bookingModel.js';
 import Homestay from '../models/homestayModel.js';
 import userModel from '../models/usermodel.js';
+import { autoCompletePastCheckoutBookings } from '../utils/bookingStatusUpdater.js';
 
 const formatDayKey = (date) => {
   const year = date.getFullYear();
@@ -64,6 +65,8 @@ const buildRevenueSummary = (entries = []) => entries.reduce((summary, entry) =>
 
 export const getAdminOverviewAnalytics = async (req, res) => {
   try {
+    await autoCompletePastCheckoutBookings();
+
     const [users, homestays, bookings] = await Promise.all([
       userModel.find({}).select('role isAccountVerified username email'),
       Homestay.find({})
